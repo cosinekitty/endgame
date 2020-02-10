@@ -18,8 +18,37 @@ namespace CosineKitty
             : message(_message)
             {}
 
-        const std::string& Message() { return message; }
+        const std::string& Message() const
+        {
+            return message;
+        }
     };
+
+    inline int Offset(char file, char rank)
+    {
+        // file is a letter 'a'..'h'.
+        // rank is a digit  '1'..'8'.
+        // Return the offset into the 10x12 board array.
+        if (file < 'a' || file > 'h' || rank < '1' || rank > '8')
+            throw ChessException("Invalid file/rank coordinates.");
+        return ((file - 'a') + 1) + 10*((rank - '1') + 2);
+    }
+
+    inline char File(int offset)
+    {
+        int x = offset % 10;
+        if (x < 1 || x > 8)
+            throw ChessException("Invalid chess board offset (file)");
+        return (x - 1) + 'a';
+    }
+
+    inline char Rank(int offset)
+    {
+        int y = offset / 10;
+        if (y < 2 || y > 9)
+            throw ChessException("Invalid chess board offset (rank)");
+        return (y - 2) + '1';
+    }
 
     enum Square
     {
@@ -58,6 +87,14 @@ namespace CosineKitty
         MoveList()
             : length(0)
             {}
+
+        void Add(Move move)
+        {
+            if (length >= MaxMoves)
+                throw ChessException("MoveList overflow");
+
+            movelist[length++] = move;
+        }
     };
 
     class ChessBoard
