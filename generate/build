@@ -1,0 +1,9 @@
+#!/bin/bash
+Fail()
+{
+    echo "FATAL($0): $1"
+    exit 1
+}
+
+g++ -o endgame endgame.cpp chess.cpp || Fail "Error building C++ code"
+exit 0
