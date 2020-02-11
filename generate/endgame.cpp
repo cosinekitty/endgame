@@ -104,6 +104,8 @@ namespace CosineKitty
 
         ChessBoard board;
         if (VerifyMoveList(board, "e1d1 e1d2 e1e2 e1f2 e1f1")) return 1;
+        board.Clear(false);
+        if (VerifyMoveList(board, "e8d8 e8d7 e8e7 e8f7 e8f8")) return 1;
         cout << "Test_Moves: PASS" << endl;
         return 0;
     }
