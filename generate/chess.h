@@ -5,6 +5,7 @@
 #define __COSINEKITTY_CHESS_H
 
 #include <string>
+#include <stack>
 
 namespace CosineKitty
 {
@@ -18,10 +19,7 @@ namespace CosineKitty
             : message(_message)
             {}
 
-        const std::string& Message() const
-        {
-            return message;
-        }
+        const std::string& Message() const { return message; }
     };
 
     inline int Offset(char file, char rank)
@@ -50,6 +48,14 @@ namespace CosineKitty
         return (y - 2) + '1';
     }
 
+    inline unsigned char ValidateOffset(int offset)
+    {
+        // Call Rank, File for the side-effect of throwing an exception if offset is invalid.
+        Rank(offset);
+        File(offset);
+        return static_cast<unsigned char>(offset);
+    }
+
     enum Square
     {
         Empty,
@@ -70,11 +76,112 @@ namespace CosineKitty
         BlackKing,
     };
 
+    enum Side
+    {
+        Invalid,
+        Nobody,
+        White,
+        Black,
+    };
+
+    inline Side SquareSide(Square square)
+    {
+        switch (square)
+        {
+        case WhitePawn:
+        case WhiteKnight:
+        case WhiteBishop:
+        case WhiteRook:
+        case WhiteQueen:
+        case WhiteKing:
+            return White;
+
+        case BlackPawn:
+        case BlackKnight:
+        case BlackBishop:
+        case BlackRook:
+        case BlackQueen:
+        case BlackKing:
+            return Black;
+
+        case Empty:
+            return Nobody;
+
+        default:
+            return Invalid;     // off the board or not a valid piece at all.
+        }
+    }
+
+    inline Side Opposite(Side side)
+    {
+        switch (side)
+        {
+        case White:
+            return Black;
+        case Black:
+            return White;
+        default:
+            return side;
+        }
+    }
+
+    // The directional offsets in the chess board...
+    const int North     = +10;
+    const int NorthEast = +11;
+    const int East      =  +1;
+    const int SouthEast =  -9;
+    const int South     = -10;
+    const int SouthWest = -11;
+    const int West      =  -1;
+    const int NorthWest =  +9;
+
+    const int KnightDir1 = (2*North + East);
+    const int KnightDir2 = (2*North + West);
+    const int KnightDir3 = (2*South + East);
+    const int KnightDir4 = (2*South + West);
+    const int KnightDir5 = (2*East + North);
+    const int KnightDir6 = (2*East + South);
+    const int KnightDir7 = (2*West + North);
+    const int KnightDir8 = (2*West + South);
+
     struct Move
     {
-        unsigned char source;
-        unsigned char dest;
-        short score;
+        unsigned char   source;
+        unsigned char   dest;
+        short           score;
+
+        Move()
+            : source(0)
+            , dest(0)
+            , score(0)
+            {}
+
+        Move(int _source, int _dest)
+            : source(ValidateOffset(_source))
+            , dest(ValidateOffset(_dest))
+            , score(0)
+            {}
+
+        std::string Algebraic() const
+        {
+            std::string text;
+            text.push_back(File(source));
+            text.push_back(Rank(source));
+            text.push_back(File(dest));
+            text.push_back(Rank(dest));
+            return text;
+        }
+    };
+
+    struct Unmove       // information needed to undo a move on the ChessBoard
+    {
+        Move   move;
+        Square capture;
+
+        Unmove(Move _move, Square _capture)
+            : move(_move)
+            , capture(_capture)
+            {}
     };
 
     const int MaxMoves = 255;       // The maximum number of moves possible in any chess position is less than this.
@@ -100,13 +207,29 @@ namespace CosineKitty
     class ChessBoard
     {
     private:
-        Square square[120];     // 8x8 chess board embedded in a 10x12 buffer.
-        int wkpos;              // White King's position (index into 'square')
-        int bkpos;              // Black King's position (index into 'square')
-        bool isWhiteTurn;       // is it White's turn to move?
+        Square  square[120];    // 8x8 chess board embedded in a 10x12 buffer.
+        int     wkpos;          // White King's position (index into 'square')
+        int     bkpos;          // Black King's position (index into 'square')
+        bool    isWhiteTurn;    // is it White's turn to move?
+        std::stack<Unmove> unmoveStack;
 
     public:
-        ChessBoard();
+        ChessBoard() { Clear(); }
+        void Clear();   // Empty the board except for kings and make it be White's turn.
+        void GenMoves(MoveList &movelist);      // Get list of all legal moves for current player.
+        void PushMove(Move move);
+        void PopMove();
+
+    private:
+        void GenWhiteMoves(MoveList &movelist);
+        void GenBlackMoves(MoveList &movelist);
+        void TryWhiteMove(MoveList &movelist, int source, int dest);
+        void TryBlackMove(MoveList &movelist, int source, int dest);
+        void TryWhiteRay(MoveList &movelist, int source, int dir);
+        void TryBlackRay(MoveList &movelist, int source, int dir);
+        bool IsAttackedByWhite(int offset) const;
+        bool IsAttackedByBlack(int offset) const;
+        bool IsAttackedRay(int source, int dir, Square piece1, Square piece2) const;
     };
 }
 

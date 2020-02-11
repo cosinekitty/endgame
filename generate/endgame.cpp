@@ -20,7 +20,7 @@ namespace CosineKitty
         return 1;
     }
 
-    int UnitTest()
+    int Test_Coordinates()
     {
         using namespace std;
 
@@ -40,7 +40,80 @@ namespace CosineKitty
                 }
             }
         }
+        cout << "Test_Coordinates: PASS" << endl;
+        return 0;
+    }
 
+    int VerifyMoveList(ChessBoard &board, const char *text)
+    {
+        using namespace std;
+
+        // Parse the list of expected moves inside 'text'.
+        MoveList expected;
+        for (int n=0; text[5*n] != '\0'; ++n)
+        {
+            int source = Offset(text[5*n], text[5*n+1]);
+            int dest = Offset(text[5*n+2], text[5*n+3]);
+            expected.Add(Move(source, dest));
+            if (text[5*n+4] == '\0')
+                break;      // normal end of string
+
+            if (text[5*n+4] != ' ')
+            {
+                cerr << "VerifyMoveList: invalid text '" << text << "'" << endl;
+                return 1;
+            }
+        }
+
+        MoveList movelist;
+        board.GenMoves(movelist);
+
+        // Confirm that the two move lists contain the same moves, ignoring order.
+        if (expected.length != movelist.length)
+        {
+            cerr << "VerifyMoveList: expected " << expected.length << " moves, found " << movelist.length << endl;
+            return 1;
+        }
+
+        for (int i=0; i < expected.length; ++i)
+        {
+            const Move& e = expected.movelist[i];
+            bool found = false;
+            for (int k=0; k < movelist.length; ++k)
+            {
+                const Move &m = movelist.movelist[k];
+                if (e.source == m.source && e.dest == m.dest)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                cerr << "VerifyMoveList: Expected " << e.Algebraic() << " in move list, but is missing." << endl;
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
+    int Test_Moves()
+    {
+        using namespace std;
+
+        ChessBoard board;
+        if (VerifyMoveList(board, "e1d1 e1d2 e1e2 e1f2 e1f1")) return 1;
+        cout << "Test_Moves: PASS" << endl;
+        return 0;
+    }
+
+    int UnitTest()
+    {
+        using namespace std;
+
+        if (Test_Coordinates()) return 1;
+        if (Test_Moves()) return 1;
         cout << "UnitTest: PASS" << endl;
         return 0;
     }
