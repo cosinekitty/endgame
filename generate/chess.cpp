@@ -14,6 +14,15 @@ namespace CosineKitty
         unmoveStack = std::stack<Unmove>();
     }
 
+    void ChessBoard::SetSquare(int offset, Square value)
+    {
+        ValidateOffset(offset);
+        Side side = SquareSide(value);
+        if (side == Invalid)
+            throw ChessException("SetSquare: invalid square value");
+        square[offset] = value;
+    }
+
     void ChessBoard::PushMove(Move move)
     {
         Square mover = square[move.source];

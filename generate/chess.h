@@ -219,6 +219,7 @@ namespace CosineKitty
         void GenMoves(MoveList &movelist);      // Get list of all legal moves for current player.
         void PushMove(Move move);
         void PopMove();
+        void SetSquare(int offset, Square value);
 
     private:
         void GenWhiteMoves(MoveList &movelist);
