@@ -2,7 +2,7 @@
 
 namespace CosineKitty
 {
-    void ChessBoard::Clear()
+    void ChessBoard::Clear(bool whiteToMove)
     {
         for (int x=0; x<10; ++x)
             for (int y=0; y<12; ++y)
@@ -10,7 +10,7 @@ namespace CosineKitty
 
         square[wkpos = Offset('e', '1')] = WhiteKing;
         square[bkpos = Offset('e', '8')] = BlackKing;
-        isWhiteTurn = true;
+        isWhiteTurn = whiteToMove;
         unmoveStack = std::stack<Unmove>();
     }
 

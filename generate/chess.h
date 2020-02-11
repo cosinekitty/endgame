@@ -214,8 +214,8 @@ namespace CosineKitty
         std::stack<Unmove> unmoveStack;
 
     public:
-        ChessBoard() { Clear(); }
-        void Clear();   // Empty the board except for kings and make it be White's turn.
+        ChessBoard() { Clear(true); }
+        void Clear(bool whiteToMove);
         void GenMoves(MoveList &movelist);      // Get list of all legal moves for current player.
         void PushMove(Move move);
         void PopMove();
