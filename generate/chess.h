@@ -6,6 +6,7 @@
 
 #include <string>
 #include <stack>
+#include <vector>
 
 namespace CosineKitty
 {
@@ -220,6 +221,7 @@ namespace CosineKitty
         void PushMove(Move move);
         void PopMove();
         void SetSquare(int offset, Square value);
+        bool IsLegalPosition() const;
 
     private:
         void GenWhiteMoves(MoveList &movelist);
@@ -231,6 +233,17 @@ namespace CosineKitty
         bool IsAttackedByWhite(int offset) const;
         bool IsAttackedByBlack(int offset) const;
         bool IsAttackedRay(int source, int dir, Square piece1, Square piece2) const;
+    };
+
+    class Endgame
+    {
+    private:
+        std::vector<Square> pieces;
+
+    public:
+        Endgame(const char *piecelist);
+        void Search();
+        void Save(std::string filename) const;
     };
 }
 

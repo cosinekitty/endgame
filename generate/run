@@ -5,6 +5,7 @@ Fail()
     exit 1
 }
 
-g++ -o endgame endgame.cpp chess.cpp || Fail "Error building C++ code."
+g++ -o endgame endgame.cpp board.cpp main.cpp || Fail "Error building C++ code."
 ./endgame test || Fail "Failed unit tests."
+./endgame generate q
 exit 0

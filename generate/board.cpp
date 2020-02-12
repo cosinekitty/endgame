@@ -17,9 +17,21 @@ namespace CosineKitty
     void ChessBoard::SetSquare(int offset, Square value)
     {
         ValidateOffset(offset);
-        Side side = SquareSide(value);
-        if (side == Invalid)
+        if (SquareSide(value) == Invalid)
             throw ChessException("SetSquare: invalid square value");
+
+        if (value == WhiteKing)
+        {
+            // There must be exactly one White King on the board.
+            square[wkpos] = Empty;
+            wkpos = offset;
+        }
+        else if (value == BlackKing)
+        {
+            // There must be exactly one Black King on the board.
+            square[bkpos] = Empty;
+            bkpos = offset;
+        }
         square[offset] = value;
     }
 
@@ -344,5 +356,13 @@ namespace CosineKitty
             /* do nothing */;
 
         return square[dest] == piece1 || square[dest] == piece2;
+    }
+
+    bool ChessBoard::IsLegalPosition() const
+    {
+        // It is never legal for a player to make a move that leaves
+        // his own King in check. If the player not having the turn
+        // is in check, then this is not a valid position.
+        return isWhiteTurn ? !IsAttackedByWhite(bkpos) : !IsAttackedByBlack(wkpos);
     }
 }
