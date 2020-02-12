@@ -14,6 +14,14 @@ namespace CosineKitty
         unmoveStack = std::stack<Unmove>();
     }
 
+    Square ChessBoard::GetSquare(int offset) const
+    {
+        if (offset < 0 || offset >= 120 || square[offset] == OffBoard)
+            throw ChessException("ChessBoard::GetSquare: invalid offset");
+
+        return square[offset];
+    }
+
     void ChessBoard::SetSquare(int offset, Square value)
     {
         ValidateOffset(offset);
@@ -32,7 +40,14 @@ namespace CosineKitty
             square[bkpos] = Empty;
             bkpos = offset;
         }
+
         square[offset] = value;
+
+        if (square[wkpos] != WhiteKing)
+            throw ChessException("White King is missing");
+
+        if (square[bkpos] != BlackKing)
+            throw ChessException("Black King is missing");
     }
 
     void ChessBoard::PushMove(Move move)
@@ -81,6 +96,11 @@ namespace CosineKitty
             GenWhiteMoves(movelist);
         else
             GenBlackMoves(movelist);
+    }
+
+    bool ChessBoard::IsCurrentPlayerInCheck() const
+    {
+        return isWhiteTurn ? IsAttackedByBlack(wkpos) : IsAttackedByWhite(bkpos);
     }
 
     void ChessBoard::GenWhiteMoves(MoveList &movelist)

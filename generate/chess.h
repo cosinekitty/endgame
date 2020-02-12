@@ -145,6 +145,12 @@ namespace CosineKitty
     const int KnightDir7 = (2*West + North);
     const int KnightDir8 = (2*West + South);
 
+    // Score constants...
+    const short Unscored  = -2000;
+    const short BlackMate = -1000;
+    const short WhiteMate = +1000;
+    const short Draw      =     0;
+
     struct Move
     {
         unsigned char   source;
@@ -154,13 +160,13 @@ namespace CosineKitty
         Move()
             : source(0)
             , dest(0)
-            , score(0)
+            , score(Unscored)
             {}
 
         Move(int _source, int _dest)
             : source(ValidateOffset(_source))
             , dest(ValidateOffset(_dest))
-            , score(0)
+            , score(Unscored)
             {}
 
         std::string Algebraic() const
@@ -217,11 +223,15 @@ namespace CosineKitty
     public:
         ChessBoard() { Clear(true); }
         void Clear(bool whiteToMove);
+        bool IsWhiteTurn() const { return isWhiteTurn; }
         void GenMoves(MoveList &movelist);      // Get list of all legal moves for current player.
         void PushMove(Move move);
         void PopMove();
+        Square GetSquare(int offset) const;
+        void SetTurn(bool whiteToMove) { isWhiteTurn = whiteToMove; }
         void SetSquare(int offset, Square value);
         bool IsLegalPosition() const;
+        bool IsCurrentPlayerInCheck() const;
 
     private:
         void GenWhiteMoves(MoveList &movelist);
@@ -241,12 +251,17 @@ namespace CosineKitty
         std::vector<Square> pieces;
         std::vector<Move>   whiteTable;
         std::vector<Move>   blackTable;
+        std::size_t         length;
 
     public:
         Endgame(const char *piecelist);
-        std::size_t GetTableSize() const { return whiteTable.size(); }
-        void Search();
+        std::size_t GetTableSize() const { return length; }
+        void Generate();
         void Save(std::string filename) const;
+
+    private:
+        void Search(ChessBoard& board, std::size_t npieces, std::size_t index, int mateDelay, int& nfound);
+        void ScoreWhite(ChessBoard &board);
     };
 }
 

@@ -134,7 +134,7 @@ namespace CosineKitty
         // Create an EndgameConfig object from the piecelist string.
         Endgame db(piecelist);
         cout << "Table size = " << db.GetTableSize() << endl;
-        db.Search();
+        db.Generate();
         db.Save(std::string(piecelist) + ".egm");
         return 0;
     }
