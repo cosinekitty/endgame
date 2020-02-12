@@ -129,8 +129,11 @@ namespace CosineKitty
 
     int GenerateDatabase(const char *piecelist)
     {
+        using namespace std;
+
         // Create an EndgameConfig object from the piecelist string.
         Endgame db(piecelist);
+        cout << "Table size = " << db.GetTableSize() << endl;
         db.Search();
         db.Save(std::string(piecelist) + ".egm");
         return 0;

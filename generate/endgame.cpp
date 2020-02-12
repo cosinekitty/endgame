@@ -33,10 +33,13 @@ namespace CosineKitty
         // Calculate the table length based on the maximum possible index.
         // Using eightfold symmetry, the Black King can be in only 10 possible distinct locations.
         // The White King can be in any remaining square, but call it 64 to keep code simple.
-        int length = 10;
-        int npieces = static_cast<int>(pieces.size());
-        for (int i=1; i < npieces; ++i)
+        std::size_t length = 10;
+        std::size_t npieces = pieces.size();
+        for (std::size_t i=1; i < npieces; ++i)
             length *= 64;
+
+        whiteTable.resize(length);
+        blackTable.resize(length);
     }
 
     void Endgame::Search()

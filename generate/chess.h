@@ -239,9 +239,12 @@ namespace CosineKitty
     {
     private:
         std::vector<Square> pieces;
+        std::vector<Move>   whiteTable;
+        std::vector<Move>   blackTable;
 
     public:
         Endgame(const char *piecelist);
+        std::size_t GetTableSize() const { return whiteTable.size(); }
         void Search();
         void Save(std::string filename) const;
     };
