@@ -249,6 +249,7 @@ namespace CosineKitty
     {
     private:
         std::vector<Square> pieces;
+        std::vector<int>    offsets;
         std::vector<Move>   whiteTable;
         std::vector<Move>   blackTable;
         std::size_t         length;
@@ -259,9 +260,13 @@ namespace CosineKitty
         void Generate();
         void Save(std::string filename) const;
 
+        static int UnitTest();
+
     private:
-        void Search(ChessBoard& board, std::size_t npieces, std::size_t index, int mateDelay, int& nfound);
-        void ScoreWhite(ChessBoard &board);
+        void Search(ChessBoard& board, std::size_t npieces, int& nfound);
+        std::size_t TableIndex() const;
+        int ScoreWhite(ChessBoard &board);
+        int ScoreBlack(ChessBoard &board);
     };
 }
 

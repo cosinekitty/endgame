@@ -123,6 +123,7 @@ namespace CosineKitty
 
         if (Test_Coordinates()) return 1;
         if (Test_Moves()) return 1;
+        if (Endgame::UnitTest()) return 1;
         cout << "UnitTest: PASS" << endl;
         return 0;
     }
