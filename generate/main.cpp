@@ -47,6 +47,27 @@ namespace CosineKitty
         return 0;
     }
 
+    int VerifyCheckmate(ChessBoard &board)
+    {
+        using namespace std;
+
+        MoveList movelist;
+        board.GenMoves(movelist);
+        if (movelist.length > 0)
+        {
+            cerr << "FAIL(VerifyCheckmate): found " << movelist.length << " legal moves." << endl;
+            return 1;
+        }
+
+        if (!board.IsCurrentPlayerInCheck())
+        {
+            cerr << "FAIL(VerifyCheckmate): current player is NOT in check." << endl;
+            return 1;
+        }
+
+        return 0;
+    }
+
     int VerifyMoveList(ChessBoard &board, const char *text)
     {
         using namespace std;
@@ -112,6 +133,12 @@ namespace CosineKitty
 
         board.Clear(false);
         if (VerifyMoveList(board, "e8d8 e8d7 e8e7 e8f7 e8f8")) return 1;
+
+        // Verify a simple checkmate.
+        board.SetSquare(Offset('a', '1'), BlackKing);
+        board.SetSquare(Offset('b', '1'), WhiteQueen);
+        board.SetSquare(Offset('c', '1'), WhiteKing);
+        if (VerifyCheckmate(board)) return 1;
 
         cout << "Test_Moves: PASS" << endl;
         return 0;
