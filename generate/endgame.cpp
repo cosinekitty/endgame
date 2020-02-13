@@ -2,6 +2,7 @@
     endgame.cpp  -  Don Cross  -  https://github.com/cosinekitty/endgame
 */
 
+#include <cstdio>
 #include <iostream>
 #include "chess.h"
 
@@ -529,6 +530,21 @@ namespace CosineKitty
 
     void Endgame::Save(std::string filename) const
     {
+        FILE *outfile = fopen(filename.c_str(), "wt");
+        if (outfile == NULL)
+            throw ChessException(std::string("Cannot open output file: ") + filename);
 
+        fprintf(outfile, "%lu\n", static_cast<unsigned long>(length));
+        for (std::size_t i=0; i < length; ++i)
+        {
+            Move m = whiteTable[i];
+            if (m.score > 0)
+            {
+                int mateIn = ((WhiteMates - 1) - m.score) / 2;
+                fprintf(outfile, "%9lu %2d %s\n", static_cast<unsigned long>(i), mateIn, m.Algebraic().c_str());
+            }
+        }
+
+        fclose(outfile);
     }
 }
