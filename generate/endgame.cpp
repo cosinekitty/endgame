@@ -31,7 +31,7 @@ namespace CosineKitty
             }
         }
 
-        displist.resize(pieces.size());
+        offsetList.resize(pieces.size());
 
         // Calculate the table length based on the maximum possible index.
         // Using eightfold symmetry, the Black King can be in only 10 possible distinct locations.
@@ -263,7 +263,7 @@ namespace CosineKitty
         using namespace std;
 
         whiteTable = vector<Move>(length);
-        blackTable = vector<Move>(length);
+        blackTable = vector<short>(length, Unscored);
         ChessBoard board;
 
         int nfound = 1;
@@ -280,9 +280,21 @@ namespace CosineKitty
         if (symmetry < 0 || symmetry >= NumSymmetries)
             throw ChessException("CalcPosition: symmetry is out of bounds.");
 
-        std::size_t index = 0;
-        for (int d : displist)
-            index = (64 * index) + SymmetryTable[symmetry][d];
+        int bkDisplacement = SymmetryTable[symmetry][Displacements[offsetList[0]]];
+        int bkOffset = PieceOffsets[bkDisplacement];
+
+        // A position has a valid index only if the Black King is inside
+        // one of the 10 squares indicated by FirstDisplacements.
+        int bkFirst = FirstDisplacements[bkOffset];
+        if (bkFirst < 0)
+            return Position(length, symmetry);      // return an invalid index to signal caller to ignore this symmetry
+
+        if (bkFirst > 9)
+            throw ChessException("Internal error in CalcPosition");
+
+        std::size_t index = bkFirst;
+        for (std::size_t i = 1; i < offsetList.size(); ++i)
+            index = (64 * index) + SymmetryTable[symmetry][Displacements[offsetList[i]]];
 
         return Position(index, symmetry);
     }
@@ -291,7 +303,8 @@ namespace CosineKitty
     Position Endgame::TableIndex() const
     {
         // Iterate through all symmetries and pick the one with the smallest index.
-        // That is the canonical representation of the position.
+        // That will be the canonical representation of the position.
+
         Position best = CalcPosition(0);
         for (int s=1; s < NumSymmetries; ++s)
         {
@@ -299,6 +312,7 @@ namespace CosineKitty
             if (pos.index < best.index)
                 best = pos;
         }
+
         return best;
     }
 
@@ -313,7 +327,7 @@ namespace CosineKitty
             // it in the 10 distinct board locations.
             for (size_t i=0; i < 10; ++i)
             {
-                displist[npieces] = i;
+                offsetList[npieces] = FirstPieceOffsets[i];
                 board.SetSquare(FirstPieceOffsets[i], pieces[npieces]);
                 Search(board, 1, nfound);
                 // No need to erase Black King because it is moved automatically.
@@ -326,7 +340,7 @@ namespace CosineKitty
             {
                 if (board.GetSquare(PieceOffsets[i]) == Empty)
                 {
-                    displist[npieces] = i;
+                    offsetList[npieces] = PieceOffsets[i];
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
                     if (board.IsLegalPosition())        // prune positions where kings are touching
                         Search(board, npieces+1, nfound);
@@ -340,7 +354,7 @@ namespace CosineKitty
             {
                 if (board.GetSquare(PieceOffsets[i]) == Empty)
                 {
-                    displist[npieces] = i;
+                    offsetList[npieces] = PieceOffsets[i];
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
                     Search(board, npieces+1, nfound);
                     board.SetSquare(PieceOffsets[i], Empty);    // must erase non-King pieces
@@ -359,9 +373,49 @@ namespace CosineKitty
     int Endgame::ScoreWhite(ChessBoard& board)
     {
         board.SetTurn(true);    // make it be White's turn to move
+        if (!board.IsLegalPosition())
+            return 0;   // this position cannot be reached in a real chess game
 
         // Calculate the symmetric table index for this chess position.
-        // If the position has already been resolved, don't do any more work.
+        Position pos = TableIndex();
+
+        // If the position has already been resolved, don't do any redundant work.
+        if (whiteTable.at(pos.index).score != Unscored)
+            return 0;
+
+        // Generate legal moves for White.
+        MoveList movelist;
+        board.GenMoves(movelist);
+        if (movelist.length == 0)
+        {
+            // The game is over. This should never happen! White should always have a move.
+            throw ChessException("ScoreWhite: no legal moves for White");
+        }
+
+        // Try every legal move and see which one has the best score.
+        // Ignore unscored positions, but pick the best available mating combination.
+        Move bestMove;
+        for (int i=0; i < movelist.length; ++i)
+        {
+            Move move = movelist.movelist[i];
+            UpdateOffset(move.source, move.dest);
+            board.PushMove(move);
+            Position next = TableIndex();
+            move.score = blackTable.at(next.index);
+            board.PopMove();
+            UpdateOffset(move.dest, move.source);
+
+            if (move.score > bestMove.score)
+                bestMove = move;
+        }
+
+        if (bestMove.score > Draw)
+        {
+            // Forced win for White.
+            --bestMove.score;   // Penalize White for postponement by one ply.
+            whiteTable.at(pos.index) = bestMove;
+            return 1;
+        }
 
         return 0;
     }
@@ -369,8 +423,109 @@ namespace CosineKitty
     int Endgame::ScoreBlack(ChessBoard& board)
     {
         board.SetTurn(false);   // make it be Black's turn to move
-        return 0;
+        if (!board.IsLegalPosition())
+            return 0;   // this position cannot be reached in a real chess game
+
+        // Calculate the symmetric table index for this chess position.
+        Position pos = TableIndex();
+
+        // If the position has already been resolved, don't do any redundant work.
+        if (blackTable.at(pos.index) != Unscored)
+            return 0;
+
+        // Generate legal moves for White.
+        MoveList movelist;
+        board.GenMoves(movelist);
+        if (movelist.length == 0)
+        {
+            // The game is over: Black has either been stalemated or checkmated.
+            short score = board.IsCurrentPlayerInCheck() ? WhiteMates : Draw;
+            blackTable.at(pos.index) = score;
+            return 1;
+        }
+
+        // Try every legal move for Black to see what happens in each case.
+        // If any move leads to a forced draw (either because of stalemate or
+        // a capture of White's necessary material for checkmate),
+        // immediately call the position a draw. (This is the best possible outcome for Black).
+        // Otherwise, if any resulting position is undecided, this one is undecided also.
+        // If all resulting positions result in a loss, pick the one that postpones
+        // checkmate the longest.
+
+        int unresolvedCount = 0;
+        short bestScore = PosInf;
+        for (int i=0; i < movelist.length; ++i)
+        {
+            Move move = movelist.movelist[i];
+            Square capture = board.GetSquare(move.dest);
+            if (capture != Empty)
+            {
+                // Assume any capture of a White piece results in a draw.
+                blackTable.at(pos.index) = Draw;
+                return 1;
+            }
+            UpdateOffset(move.source, move.dest);
+            board.PushMove(move);
+            Position next = TableIndex();
+            short score = whiteTable.at(next.index).score;
+            board.PopMove();
+            UpdateOffset(move.dest, move.source);
+
+            if (score == Unscored)
+            {
+                ++unresolvedCount;
+            }
+            else if (score > Draw)
+            {
+                --score;    // give bonus to Black for postponing checkmate by one ply.
+                if (score < bestScore)
+                    bestScore = score;
+            }
+            else if (score == Draw)
+            {
+                // Black can force a draw, so this position is immediately known to be a draw.
+                blackTable.at(pos.index) = Draw;
+                return 1;
+            }
+            else
+            {
+                std::cerr << "score = " << score << std::endl;
+                throw ChessException("ScoreBlack: Unexpected win for Black");
+            }
+        }
+
+        if (unresolvedCount > 0)
+            return 0;   // cannot evaluate this position yet
+
+        if (bestScore > Draw && bestScore < WhiteMates)
+        {
+            blackTable.at(pos.index) = bestScore;
+            return 1;
+        }
+
+        throw ChessException("ScoreBlack: impossible score");
     }
+
+
+    void Endgame::UpdateOffset(int oldOffset, int newOffset)
+    {
+        ValidateOffset(oldOffset);
+        ValidateOffset(newOffset);
+
+        // Figure out which piece is being moved, and update its offset.
+        for (int& ofs : offsetList)
+        {
+            if (ofs == oldOffset)
+            {
+                ofs = newOffset;
+                return;
+            }
+        }
+
+        // If we didn't find a matching offset, something is wrong!
+        throw ChessException("UpdateOffset: could not find piece at old offset");
+    }
+
 
     void Endgame::Save(std::string filename) const
     {

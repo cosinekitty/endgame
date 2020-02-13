@@ -146,10 +146,11 @@ namespace CosineKitty
     const int KnightDir8 = (2*West + South);
 
     // Score constants...
-    const short Unscored  = -2000;
-    const short BlackMate = -1000;
-    const short WhiteMate = +1000;
-    const short Draw      =     0;
+    const short Unscored   = -2000;
+    const short BlackMates = -1000;
+    const short WhiteMates = +1000;
+    const short PosInf     = +2000;    // better than any possible score
+    const short Draw       =     0;
 
     struct Move
     {
@@ -161,6 +162,12 @@ namespace CosineKitty
             : source(0)
             , dest(0)
             , score(Unscored)
+            {}
+
+        Move(short _score)      // create a null move with a score, to represent checkmate/stalemate
+            : source(0)
+            , dest(0)
+            , score(_score)
             {}
 
         Move(int _source, int _dest)
@@ -260,9 +267,9 @@ namespace CosineKitty
     {
     private:
         std::vector<Square> pieces;
-        std::vector<int>    displist;
+        std::vector<int>    offsetList;
         std::vector<Move>   whiteTable;
-        std::vector<Move>   blackTable;
+        std::vector<short>  blackTable;
         std::size_t         length;
 
     public:
@@ -279,6 +286,7 @@ namespace CosineKitty
         Position TableIndex() const;
         int ScoreWhite(ChessBoard &board);
         int ScoreBlack(ChessBoard &board);
+        void UpdateOffset(int oldOffset, int newOffset);
     };
 }
 
