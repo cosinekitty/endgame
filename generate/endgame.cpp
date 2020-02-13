@@ -272,6 +272,7 @@ namespace CosineKitty
         {
             nfound = 0;
             Search(board, 0, mateInMoves, nfound);
+            cout << "Search(" << mateInMoves << "): found " << nfound << endl;
         }
     }
 
