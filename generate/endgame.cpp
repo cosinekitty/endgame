@@ -25,7 +25,7 @@ namespace CosineKitty
             {
             case 'q':   pieces.push_back(WhiteQueen);   break;
             case 'r':   pieces.push_back(WhiteRook);    break;
-            case 'b':   pieces.push_back(WhiteKnight);  break;
+            case 'b':   pieces.push_back(WhiteBishop);  break;
             case 'n':   pieces.push_back(WhiteKnight);  break;
             default:
                 throw ChessException("Illegal endgame piece: must be q, r, b, n.");
