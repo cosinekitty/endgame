@@ -270,7 +270,7 @@ namespace CosineKitty
             // Try making the move and see if it places the mover's king in check.
             Move move(source, dest);
             PushMove(move);
-            bool self_check = IsAttackedByWhite(wkpos);
+            bool self_check = IsAttackedByWhite(bkpos);
             PopMove();
             if (!self_check)
                 movelist.Add(move);

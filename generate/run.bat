@@ -12,4 +12,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+for %%x in (q) do (
+    echo.Generating database: %%x
+    !genexe! generate %%x
+    if errorlevel 1 (
+        echo.FAILURE generating database '%%x'
+        exit /b 1
+    )
+)
+
 exit /b 0
