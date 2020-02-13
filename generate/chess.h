@@ -38,7 +38,7 @@ namespace CosineKitty
         int x = offset % 10;
         if (x < 1 || x > 8)
             throw ChessException("Invalid chess board offset (file)");
-        return (x - 1) + 'a';
+        return static_cast<char>((x - 1) + 'a');
     }
 
     inline char Rank(int offset)
@@ -46,7 +46,7 @@ namespace CosineKitty
         int y = offset / 10;
         if (y < 2 || y > 9)
             throw ChessException("Invalid chess board offset (rank)");
-        return (y - 2) + '1';
+        return static_cast<char>((y - 2) + '1');
     }
 
     inline unsigned char ValidateOffset(int offset)

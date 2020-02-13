@@ -397,7 +397,7 @@ namespace CosineKitty
         }
 
         // Try every legal move and see if any are forced wins at the expected win horizon.
-        short requiredScore = WhiteMates - (2 * mateInMoves);
+        int requiredScore = WhiteMates - (2 * mateInMoves);
         for (int i=0; i < movelist.length; ++i)
         {
             Move move = movelist.movelist[i];
@@ -549,7 +549,8 @@ namespace CosineKitty
         int i;
         vector<int> offset(pieces.size());
 
-        for (i = pieces.size() - 1; i > 0; --i)
+        const int n = static_cast<int>(pieces.size());
+        for (i = n-1; i > 0; --i)
         {
             offset[i] = PieceOffsets[index % 64];
             index /= 64;
@@ -561,7 +562,7 @@ namespace CosineKitty
         offset[0] = FirstPieceOffsets[index];
 
         string text;
-        for (i = 0; i < pieces.size(); ++i)
+        for (i = 0; i < n; ++i)
         {
             if (i > 0)
                 text.push_back(',');
