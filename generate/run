@@ -5,7 +5,9 @@ Fail()
     exit 1
 }
 
-g++ -o endgame endgame.cpp board.cpp main.cpp || Fail "Error building C++ code."
+g++ -Wall -Werror -O3 -o endgame endgame.cpp board.cpp main.cpp || Fail "Error building C++ code."
 ./endgame test || Fail "Failed unit tests."
-./endgame generate q
+for db in q bn; do
+    ./endgame generate ${db} || Fail "Error generating database ${db}"
+done
 exit 0
