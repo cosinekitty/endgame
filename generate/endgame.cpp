@@ -31,7 +31,7 @@ namespace CosineKitty
             }
         }
 
-        offsets.resize(pieces.size());
+        displist.resize(pieces.size());
 
         // Calculate the table length based on the maximum possible index.
         // Using eightfold symmetry, the Black King can be in only 10 possible distinct locations.
@@ -195,7 +195,7 @@ namespace CosineKitty
             60, 52, 44, 36, 28, 20, 12,  4,
             59, 51, 43, 35, 27, 19, 11,  3,
             58, 50, 42, 34, 26, 18, 10,  2,
-            57, 49, 41, 33, 25, 17,  9,  1,            
+            57, 49, 41, 33, 25, 17,  9,  1,
             56, 48, 40, 32, 24, 16,  8,  0
         },
     };
@@ -267,7 +267,7 @@ namespace CosineKitty
         ChessBoard board;
 
         int nfound = 1;
-        for (int mateDelay = 0; nfound > 1; ++mateDelay)
+        while (nfound > 0)
         {
             nfound = 0;
             Search(board, 0, nfound);
@@ -275,9 +275,31 @@ namespace CosineKitty
     }
 
 
-    std::size_t Endgame::TableIndex() const
+    Position Endgame::CalcPosition(int symmetry) const
     {
-        return 0;   // not yet implemented
+        if (symmetry < 0 || symmetry >= NumSymmetries)
+            throw ChessException("CalcPosition: symmetry is out of bounds.");
+
+        std::size_t index = 0;
+        for (int d : displist)
+            index = (64 * index) + SymmetryTable[symmetry][d];
+
+        return Position(index, symmetry);
+    }
+
+
+    Position Endgame::TableIndex() const
+    {
+        // Iterate through all symmetries and pick the one with the smallest index.
+        // That is the canonical representation of the position.
+        Position best = CalcPosition(0);
+        for (int s=1; s < NumSymmetries; ++s)
+        {
+            Position pos = CalcPosition(s);
+            if (pos.index < best.index)
+                best = pos;
+        }
+        return best;
     }
 
 
@@ -291,8 +313,8 @@ namespace CosineKitty
             // it in the 10 distinct board locations.
             for (size_t i=0; i < 10; ++i)
             {
-                offsets[0] = FirstPieceOffsets[i];
-                board.SetSquare(FirstPieceOffsets[i], pieces[0]);
+                displist[npieces] = i;
+                board.SetSquare(FirstPieceOffsets[i], pieces[npieces]);
                 Search(board, 1, nfound);
                 // No need to erase Black King because it is moved automatically.
             }
@@ -304,7 +326,7 @@ namespace CosineKitty
             {
                 if (board.GetSquare(PieceOffsets[i]) == Empty)
                 {
-                    offsets[1] = PieceOffsets[i];
+                    displist[npieces] = i;
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
                     if (board.IsLegalPosition())        // prune positions where kings are touching
                         Search(board, npieces+1, nfound);
@@ -316,9 +338,9 @@ namespace CosineKitty
         {
             for (size_t i=0; i < 64; ++i)
             {
-                if (board.GetSquare(PieceOffsets[i] == Empty))
+                if (board.GetSquare(PieceOffsets[i]) == Empty)
                 {
-                    offsets[npieces] = PieceOffsets[i];
+                    displist[npieces] = i;
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
                     Search(board, npieces+1, nfound);
                     board.SetSquare(PieceOffsets[i], Empty);    // must erase non-King pieces

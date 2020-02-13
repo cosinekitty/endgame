@@ -245,11 +245,22 @@ namespace CosineKitty
         bool IsAttackedRay(int source, int dir, Square piece1, Square piece2) const;
     };
 
+    struct Position
+    {
+        std::size_t index;
+        int         symmetry;
+
+        Position(std::size_t _index, int _symmetry)
+            : index(_index)
+            , symmetry(_symmetry)
+            {}
+    };
+
     class Endgame
     {
     private:
         std::vector<Square> pieces;
-        std::vector<int>    offsets;
+        std::vector<int>    displist;
         std::vector<Move>   whiteTable;
         std::vector<Move>   blackTable;
         std::size_t         length;
@@ -264,7 +275,8 @@ namespace CosineKitty
 
     private:
         void Search(ChessBoard& board, std::size_t npieces, int& nfound);
-        std::size_t TableIndex() const;
+        Position CalcPosition(int symmetry) const;
+        Position TableIndex() const;
         int ScoreWhite(ChessBoard &board);
         int ScoreBlack(ChessBoard &board);
     };
