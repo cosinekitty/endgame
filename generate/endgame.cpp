@@ -410,7 +410,7 @@ namespace CosineKitty
             {
                 // We found a forced mate with the current horizon. Use it!
                 --move.score;       // extend the horizon by one ply
-                whiteTable.at(pos.index) = move;
+                whiteTable.at(pos.index) = pos.RotateMove(move);
                 return 1;
             }
         }
@@ -535,10 +535,50 @@ namespace CosineKitty
             if (m.score > 0)
             {
                 int mateIn = ((WhiteMates - 1) - m.score) / 2;
-                fprintf(outfile, "%9lu %2d %s\n", static_cast<unsigned long>(i), mateIn, m.Algebraic().c_str());
+                fprintf(outfile, "%9lu %2d %s %s\n", static_cast<unsigned long>(i), mateIn, m.Algebraic().c_str(), PositionText(i).c_str());
             }
         }
 
         fclose(outfile);
+    }
+
+    std::string Endgame::PositionText(std::size_t index) const
+    {
+        using namespace std;
+
+        int i;
+        vector<int> offset(pieces.size());
+
+        for (i = pieces.size() - 1; i > 0; --i)
+        {
+            offset[i] = PieceOffsets[index % 64];
+            index /= 64;
+        }
+
+        if (index > 9)
+            throw ChessException("PositionText: Invalid index residue");
+
+        offset[0] = FirstPieceOffsets[index];
+
+        string text;
+        for (i = 0; i < pieces.size(); ++i)
+        {
+            if (i > 0)
+                text.push_back(',');
+            text.push_back(SquareChar(pieces[i]));
+            text.push_back(File(offset[i]));
+            text.push_back(Rank(offset[i]));
+        }
+
+        return text;
+    }
+
+    Move Position::RotateMove(Move move) const
+    {
+        ValidateOffset(move.source);
+        ValidateOffset(move.dest);
+        int source = PieceOffsets[SymmetryTable[symmetry][Displacements[move.source]]];
+        int dest   = PieceOffsets[SymmetryTable[symmetry][Displacements[move.dest]]];
+        return Move(source, dest, move.score);
     }
 }

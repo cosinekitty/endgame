@@ -77,6 +77,27 @@ namespace CosineKitty
         BlackKing,
     };
 
+    inline char SquareChar(Square s)
+    {
+        switch (s)
+        {
+        case Empty:         return '.';
+        case WhitePawn:     return 'P';
+        case WhiteKnight:   return 'N';
+        case WhiteBishop:   return 'B';
+        case WhiteRook:     return 'R';
+        case WhiteQueen:    return 'Q';
+        case WhiteKing:     return 'K';
+        case BlackPawn:     return 'p';
+        case BlackKnight:   return 'n';
+        case BlackBishop:   return 'b';
+        case BlackRook:     return 'r';
+        case BlackQueen:    return 'q';
+        case BlackKing:     return 'k';
+        default:            return '?';
+        }
+    }
+
     enum Side
     {
         Invalid,
@@ -170,10 +191,10 @@ namespace CosineKitty
             , score(_score)
             {}
 
-        Move(int _source, int _dest)
+        Move(int _source, int _dest, short _score = Unscored)
             : source(ValidateOffset(_source))
             , dest(ValidateOffset(_dest))
-            , score(Unscored)
+            , score(_score)
             {}
 
         std::string Algebraic() const
@@ -261,6 +282,8 @@ namespace CosineKitty
             : index(_index)
             , symmetry(_symmetry)
             {}
+
+        Move RotateMove(Move raw) const;
     };
 
     class Endgame
@@ -287,6 +310,7 @@ namespace CosineKitty
         int ScoreWhite(ChessBoard &board, int mateInMoves);
         int ScoreBlack(ChessBoard &board);
         void UpdateOffset(int oldOffset, int newOffset);
+        std::string PositionText(std::size_t index) const;
     };
 }
 
