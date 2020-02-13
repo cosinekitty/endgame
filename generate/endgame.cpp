@@ -268,10 +268,10 @@ namespace CosineKitty
         ChessBoard board;
 
         int nfound = 1;
-        while (nfound > 0)
+        for (int mateInMoves = 0; nfound > 0; ++mateInMoves)
         {
             nfound = 0;
-            Search(board, 0, nfound);
+            Search(board, 0, mateInMoves, nfound);
         }
     }
 
@@ -314,11 +314,14 @@ namespace CosineKitty
                 best = pos;
         }
 
+        if (best.index >= length)
+            throw ChessException("TableIndex: index is out of range");
+
         return best;
     }
 
 
-    void Endgame::Search(ChessBoard& board, std::size_t npieces, int& nfound)
+    void Endgame::Search(ChessBoard& board, std::size_t npieces, int mateInMoves, int& nfound)
     {
         using namespace std;
 
@@ -330,7 +333,7 @@ namespace CosineKitty
             {
                 offsetList[npieces] = FirstPieceOffsets[i];
                 board.SetSquare(FirstPieceOffsets[i], pieces[npieces]);
-                Search(board, 1, nfound);
+                Search(board, 1, mateInMoves, nfound);
                 // No need to erase Black King because it is moved automatically.
             }
         }
@@ -344,7 +347,7 @@ namespace CosineKitty
                     offsetList[npieces] = PieceOffsets[i];
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
                     if (board.IsLegalPosition())        // prune positions where kings are touching
-                        Search(board, npieces+1, nfound);
+                        Search(board, npieces+1, mateInMoves, nfound);
                     // No need to erase White King because it is moved automatically.
                 }
             }
@@ -357,7 +360,7 @@ namespace CosineKitty
                 {
                     offsetList[npieces] = PieceOffsets[i];
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
-                    Search(board, npieces+1, nfound);
+                    Search(board, npieces+1, mateInMoves, nfound);
                     board.SetSquare(PieceOffsets[i], Empty);    // must erase non-King pieces
                 }
             }
@@ -366,12 +369,12 @@ namespace CosineKitty
         {
             // All the pieces have been placed on the board.
             // Find best immediate scores for Black and White to move.
-            nfound += ScoreWhite(board);
+            nfound += ScoreWhite(board, mateInMoves);
             nfound += ScoreBlack(board);
         }
     }
 
-    int Endgame::ScoreWhite(ChessBoard& board)
+    int Endgame::ScoreWhite(ChessBoard& board, int mateInMoves)
     {
         board.SetTurn(true);    // make it be White's turn to move
         if (!board.IsLegalPosition())
@@ -393,32 +396,26 @@ namespace CosineKitty
             throw ChessException("ScoreWhite: no legal moves for White");
         }
 
-        // Try every legal move and see which one has the best score.
-        // Ignore unscored positions, but pick the best available mating combination.
-        Move bestMove;
+        // Try every legal move and see if any are forced wins at the expected win horizon.
+        short requiredScore = WhiteMates - (2 * mateInMoves);
         for (int i=0; i < movelist.length; ++i)
         {
             Move move = movelist.movelist[i];
             UpdateOffset(move.source, move.dest);
-            board.PushMove(move);
             Position next = TableIndex();
             move.score = blackTable.at(next.index);
-            board.PopMove();
             UpdateOffset(move.dest, move.source);
 
-            if (move.score > bestMove.score)
-                bestMove = move;
+            if (move.score == requiredScore)
+            {
+                // We found a forced mate with the current horizon. Use it!
+                --move.score;       // extend the horizon by one ply
+                whiteTable.at(pos.index) = move;
+                return 1;
+            }
         }
 
-        if (bestMove.score > Draw)
-        {
-            // Forced win for White.
-            --bestMove.score;   // Penalize White for postponement by one ply.
-            whiteTable.at(pos.index) = bestMove;
-            return 1;
-        }
-
-        return 0;
+        return 0;   // no forced mate found at this horizon
     }
 
     int Endgame::ScoreBlack(ChessBoard& board)
@@ -466,10 +463,8 @@ namespace CosineKitty
                 return 1;
             }
             UpdateOffset(move.source, move.dest);
-            board.PushMove(move);
             Position next = TableIndex();
             short score = whiteTable.at(next.index).score;
-            board.PopMove();
             UpdateOffset(move.dest, move.source);
 
             if (score == Unscored)
@@ -490,7 +485,6 @@ namespace CosineKitty
             }
             else
             {
-                std::cerr << "score = " << score << std::endl;
                 throw ChessException("ScoreBlack: Unexpected win for Black");
             }
         }
