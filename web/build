@@ -1,0 +1,9 @@
+#!/bin/bash
+Fail()
+{
+    echo "FAIL($0): $1"
+    exit 1
+}
+
+tsc || Fail "Error compiling TypeScript"
+
