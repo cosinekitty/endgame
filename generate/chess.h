@@ -304,7 +304,7 @@ namespace CosineKitty
         static int UnitTest();
 
     private:
-        void Search(ChessBoard& board, std::size_t npieces, int mateInMoves, int& nfound);
+        void Search(ChessBoard& board, std::size_t npieces, int mateInMoves, int& nfound, Side side);
         Position CalcPosition(int symmetry) const;
         Position TableIndex() const;
         int ScoreWhite(ChessBoard &board, int mateInMoves);

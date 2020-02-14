@@ -268,11 +268,15 @@ namespace CosineKitty
         ChessBoard board;
 
         int nfound = 1;
-        for (int mateInMoves = 0; nfound > 0; ++mateInMoves)
+        for (int mateInMoves = 1; nfound > 0; ++mateInMoves)
         {
             nfound = 0;
-            Search(board, 0, mateInMoves, nfound);
-            cout << "Search(" << mateInMoves << "): found " << nfound << endl;
+            Search(board, 0, mateInMoves, nfound, Black);
+            cout << "Black Search(" << mateInMoves << "): found " << nfound << endl;
+
+            nfound = 0;
+            Search(board, 0, mateInMoves, nfound, White);
+            cout << "White Search(" << mateInMoves << "): found " << nfound << endl;
         }
     }
 
@@ -322,7 +326,7 @@ namespace CosineKitty
     }
 
 
-    void Endgame::Search(ChessBoard& board, std::size_t npieces, int mateInMoves, int& nfound)
+    void Endgame::Search(ChessBoard& board, std::size_t npieces, int mateInMoves, int& nfound, Side side)
     {
         using namespace std;
 
@@ -334,7 +338,7 @@ namespace CosineKitty
             {
                 offsetList[npieces] = FirstPieceOffsets[i];
                 board.SetSquare(FirstPieceOffsets[i], pieces[npieces]);
-                Search(board, 1, mateInMoves, nfound);
+                Search(board, 1, mateInMoves, nfound, side);
                 // No need to erase Black King because it is moved automatically.
             }
         }
@@ -348,7 +352,7 @@ namespace CosineKitty
                     offsetList[npieces] = PieceOffsets[i];
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
                     if (board.IsLegalPosition())        // prune positions where kings are touching
-                        Search(board, npieces+1, mateInMoves, nfound);
+                        Search(board, npieces+1, mateInMoves, nfound, side);
                     // No need to erase White King because it is moved automatically.
                 }
             }
@@ -361,7 +365,7 @@ namespace CosineKitty
                 {
                     offsetList[npieces] = PieceOffsets[i];
                     board.SetSquare(PieceOffsets[i], pieces[npieces]);
-                    Search(board, npieces+1, mateInMoves, nfound);
+                    Search(board, npieces+1, mateInMoves, nfound, side);
                     board.SetSquare(PieceOffsets[i], Empty);    // must erase non-King pieces
                 }
             }
@@ -369,9 +373,19 @@ namespace CosineKitty
         else
         {
             // All the pieces have been placed on the board.
-            // Find best immediate scores for Black and White to move.
-            nfound += ScoreWhite(board, mateInMoves);
-            nfound += ScoreBlack(board);
+            switch (side)
+            {
+            case Black:
+                nfound += ScoreBlack(board);
+                break;
+
+            case White:
+                nfound += ScoreWhite(board, mateInMoves);
+                break;
+
+            default:
+                throw ChessException("Search: invalid side");
+            }
         }
     }
 
@@ -398,19 +412,18 @@ namespace CosineKitty
         }
 
         // Try every legal move and see if any are forced wins at the expected win horizon.
-        int requiredScore = WhiteMates - (2 * mateInMoves);
+        int requiredScore = (WhiteMates + 1) - 2*mateInMoves;
         for (int i=0; i < movelist.length; ++i)
         {
             Move move = movelist.movelist[i];
             UpdateOffset(move.source, move.dest);
             Position next = TableIndex();
-            move.score = blackTable.at(next.index);
+            move.score = blackTable.at(next.index) - 1;     // penalize forced wins by one ply
             UpdateOffset(move.dest, move.source);
 
             if (move.score == requiredScore)
             {
                 // We found a forced mate with the current horizon. Use it!
-                --move.score;       // extend the horizon by one ply
                 whiteTable.at(pos.index) = pos.RotateMove(move);
                 return 1;
             }
@@ -535,8 +548,12 @@ namespace CosineKitty
             Move m = whiteTable[i];
             if (m.score > 0)
             {
-                int mateIn = ((WhiteMates - 1) - m.score) / 2;
-                fprintf(outfile, "%9lu %2d %s %s\n", static_cast<unsigned long>(i), mateIn, m.Algebraic().c_str(), PositionText(i).c_str());
+                int mateIn = ((WhiteMates + 1) - m.score) / 2;
+                fprintf(outfile, "%9lu %2d %s %s\n",
+                    static_cast<unsigned long>(i),
+                    mateIn,
+                    m.Algebraic().c_str(),
+                    PositionText(i).c_str());
             }
         }
 
