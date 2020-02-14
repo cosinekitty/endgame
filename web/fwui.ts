@@ -35,7 +35,6 @@ module FwDemo {
     var PlayStopState:PlayStopStateType = PlayStopStateType.Play;
     var BoardDiv: HTMLElement;
     var ResultTextDiv: HTMLElement;
-    var ChessWorker: Worker;
     var PlayerForSide:{[side:number]:PlayerType} = {};
     MakeBothPlayersHuman();
 
@@ -422,6 +421,10 @@ module FwDemo {
         document.getElementById('PlayPauseStopButton').setAttribute('src', PlayStopImage(false));
     }
 
+    function GetEndgameMove():string {
+        return null;
+    }
+
     function DrawBoard(board:Flywheel.Board):void {
         for (let y=0; y < 8; ++y) {
             let ry = RotateFlag ? (7 - y) : y;
@@ -445,13 +448,13 @@ module FwDemo {
             if (PlayerForSide[board.SideToMove()] === PlayerType.Computer) {
                 if (MoveState !== MoveStateType.OpponentTurn) {
                     SetMoveState(MoveStateType.OpponentTurn);
-                    if (!ChessWorker) {
-                        ChessWorker = new Worker('../src/flyworker.js');
+                    const bestMoveAlg = GetEndgameMove();
+                    if (bestMoveAlg) {
+                        AnimateMove(bestMoveAlg);
+                    } else {
+                        // FIXFIXFIX: what do we do if the endgame analyzer can't find a response?
+                        alert('Could not find endgame response.');
                     }
-                    ChessWorker.onmessage = function(response) {
-                        AnimateMove(response.data.bestMoveAlg);
-                    }
-                    ChessWorker.postMessage({verb:'Search', timeLimitInSeconds:2, game:TheBoard.AlgHistory()});
                 }
             } else {
                 SetMoveState(MoveStateType.SelectSource);
@@ -788,10 +791,6 @@ module FwDemo {
     }
 
     function CancelComputerThinker():void {
-        if (ChessWorker) {
-            ChessWorker.terminate();
-            ChessWorker = null;
-        }
         MakeBothPlayersHuman();
     }
 
