@@ -1,5 +1,3 @@
-/// <reference path="flywheel.ts"/>
-
 module FwDemo {
     'use strict';
 
@@ -23,7 +21,7 @@ module FwDemo {
     };
 
     var SquarePixels:number = 70;
-    var TheBoard:Flywheel.Board = new Flywheel.Board();
+    var TheBoard:Flywheel.Board = new Flywheel.Board('8/8/8/8/4k3/8/8/Q6K b - - 0 1');
     var RotateFlag:boolean = false;
     var MoveState:MoveStateType = MoveStateType.SelectSource;
     var SourceSquareInfo;
@@ -422,7 +420,7 @@ module FwDemo {
     }
 
     function GetEndgameMove():string {
-        return null;
+        return Endgame_q.GetTable()[0];
     }
 
     function DrawBoard(board:Flywheel.Board):void {

@@ -536,6 +536,43 @@ namespace CosineKitty
     }
 
 
+    void Endgame::WriteTypeScript(std::string filename, const char *piecelist) const
+    {
+        FILE *outfile = fopen(filename.c_str(), "wt");
+        if (outfile == NULL)
+            throw ChessException(std::string("Cannot open output file: ") + filename);
+
+        fprintf(outfile, "module Endgame_%s {\n", piecelist);
+        fprintf(outfile, "'use strict';\n");
+        fprintf(outfile, "export function GetTable() { return table; }\n");
+        fprintf(outfile, "const table = [\n");
+
+        int col = 0;
+        for (std::size_t i=0; i < length; ++i)
+        {
+            Move m = whiteTable[i];
+            if (m.score > 0)
+            {
+                int mateIn = ((WhiteMates + 1) - m.score) / 2;
+                col += fprintf(outfile, "'%s%d'", m.Algebraic().c_str(), mateIn);
+            }
+            if (i + 1 < length)
+            {
+                col += fprintf(outfile, ",");
+                if (col > 120)
+                {
+                    col = 0;
+                    fprintf(outfile, "\n");
+                }
+            }
+        }
+
+        fprintf(outfile, "];\n");
+        fprintf(outfile, "}\n");
+        fclose(outfile);
+    }
+
+
     void Endgame::Save(std::string filename) const
     {
         FILE *outfile = fopen(filename.c_str(), "wt");

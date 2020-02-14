@@ -163,7 +163,8 @@ namespace CosineKitty
         Endgame db(piecelist);
         cout << "GenerateDatabase(" << piecelist << "): table size = " << db.GetTableSize() << endl;
         db.Generate();
-        db.Save(std::string(piecelist) + ".egm");
+        db.Save(string(piecelist) + ".egm");
+        db.WriteTypeScript(string("../web/endgame_") + piecelist + ".ts", piecelist);
         return 0;
     }
 }

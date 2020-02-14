@@ -1,4 +1,3 @@
-/// <reference path="flywheel.ts"/>
 var FwDemo;
 (function (FwDemo) {
     'use strict';
@@ -25,7 +24,7 @@ var FwDemo;
     })(PlayerType || (PlayerType = {}));
     ;
     var SquarePixels = 70;
-    var TheBoard = new Flywheel.Board();
+    var TheBoard = new Flywheel.Board('8/8/8/8/4k3/8/8/Q6K b - - 0 1');
     var RotateFlag = false;
     var MoveState = MoveStateType.SelectSource;
     var SourceSquareInfo;
@@ -37,7 +36,6 @@ var FwDemo;
     var PlayStopState = PlayStopStateType.Play;
     var BoardDiv;
     var ResultTextDiv;
-    var ChessWorker;
     var PlayerForSide = {};
     MakeBothPlayersHuman();
     function MakeBothPlayersHuman() {
@@ -401,6 +399,9 @@ var FwDemo;
         document.getElementById('NextTurnButton').setAttribute('src', NextButtonImage(false));
         document.getElementById('PlayPauseStopButton').setAttribute('src', PlayStopImage(false));
     }
+    function GetEndgameMove() {
+        return Endgame_q.GetTable()[0];
+    }
     function DrawBoard(board) {
         for (var y = 0; y < 8; ++y) {
             var ry = RotateFlag ? (7 - y) : y;
@@ -421,13 +422,14 @@ var FwDemo;
             if (PlayerForSide[board.SideToMove()] === PlayerType.Computer) {
                 if (MoveState !== MoveStateType.OpponentTurn) {
                     SetMoveState(MoveStateType.OpponentTurn);
-                    if (!ChessWorker) {
-                        ChessWorker = new Worker('../src/flyworker.js');
+                    var bestMoveAlg = GetEndgameMove();
+                    if (bestMoveAlg) {
+                        AnimateMove(bestMoveAlg);
                     }
-                    ChessWorker.onmessage = function (response) {
-                        AnimateMove(response.data.bestMoveAlg);
-                    };
-                    ChessWorker.postMessage({ verb: 'Search', timeLimitInSeconds: 2, game: TheBoard.AlgHistory() });
+                    else {
+                        // FIXFIXFIX: what do we do if the endgame analyzer can't find a response?
+                        alert('Could not find endgame response.');
+                    }
                 }
             }
             else {
@@ -727,10 +729,6 @@ var FwDemo;
         }
     }
     function CancelComputerThinker() {
-        if (ChessWorker) {
-            ChessWorker.terminate();
-            ChessWorker = null;
-        }
         MakeBothPlayersHuman();
     }
     function InitControls() {

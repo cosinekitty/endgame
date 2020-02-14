@@ -300,6 +300,7 @@ namespace CosineKitty
         std::size_t GetTableSize() const { return length; }
         void Generate();
         void Save(std::string filename) const;
+        void WriteTypeScript(std::string filename, const char *piecelist) const;
 
         static int UnitTest();
 
