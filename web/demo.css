@@ -1,0 +1,68 @@
+/*
+    demo.css  -  Don Cross  -  stylesheet for Flywheel chess demo.
+*/
+
+body {
+    width: 800px;
+}
+
+.noselect {
+    /* http://stackoverflow.com/questions/826782/css-rule-to-disable-text-selection-highlighting#4407335 */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.RankFileText {
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.ChessBoard {
+    position: relative;
+    left: 40px;
+    top: 35px;
+    width: 560px;
+    height: 560px;
+    background-color: beige;
+    border:1px solid black;
+    border-collapse: separate;
+}
+
+.ChessSquareHover {
+    box-shadow: inset 0px 0px 2px rgba(0,0,0,0.5), inset 0 0 1.5em rgba(0, 0, 255, 0.35);
+}
+
+.ChessSquareSelected {
+}
+
+.GameResultText {
+    background: transparent;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    font-size: 100px;
+    text-align: center;
+    vertical-align: middle;
+    font-family: serif;
+    color: rgba(255, 118, 66, 1.0);
+    text-shadow: 2px 3px 1px rgba(0, 0, 0, 0.45);
+}
+
+.PawnPromotionMenu {
+    position: absolute;
+    z-index: 2;
+}
+
+.PawnPromotionOptionNormal {
+    background-color: rgba(0, 0, 255, 0.35);
+    position: absolute;
+}
+
+.PawnPromotionOptionHover {
+    background-color: rgba(200, 200, 0, 1.0);
+    position: absolute;
+}
