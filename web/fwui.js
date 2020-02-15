@@ -399,9 +399,6 @@ var FwDemo;
         document.getElementById('NextTurnButton').setAttribute('src', NextButtonImage(false));
         document.getElementById('PlayPauseStopButton').setAttribute('src', PlayStopImage(false));
     }
-    function GetEndgameMove() {
-        return Endgame_q.GetTable()[0];
-    }
     function DrawBoard(board) {
         for (var y = 0; y < 8; ++y) {
             var ry = RotateFlag ? (7 - y) : y;
@@ -422,9 +419,10 @@ var FwDemo;
             if (PlayerForSide[board.SideToMove()] === PlayerType.Computer) {
                 if (MoveState !== MoveStateType.OpponentTurn) {
                     SetMoveState(MoveStateType.OpponentTurn);
-                    var bestMoveAlg = GetEndgameMove();
+                    var endgame = new Flywheel.Endgame(Endgame_q.GetTable(), [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]);
+                    var bestMoveAlg = endgame.GetMove(TheBoard);
                     if (bestMoveAlg) {
-                        AnimateMove(bestMoveAlg);
+                        AnimateMove(bestMoveAlg.algebraicMove);
                     }
                     else {
                         // FIXFIXFIX: what do we do if the endgame analyzer can't find a response?

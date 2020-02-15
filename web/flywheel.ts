@@ -359,7 +359,7 @@ module Flywheel {
             return square;
         }
 
-        private static Offset(alg:string):number {
+        public static Offset(alg:string):number {
             let ofs:number = Board.OffsetTable[alg];
             if (!ofs) {
                 throw new FlywheelError(`Invalid algebraic location "${alg}" : must be "a1".."h8".`);
@@ -2023,190 +2023,290 @@ module Flywheel {
     }
 
     //-------------------------------------------------------------------------------------------------------
-    export class BestPath {
-        public move: Move[] = [];
-        public score: Score = Score.NegInf;
-        public nodes: number = 0;
 
-        public Clone(): BestPath {
-            let copy:BestPath = new BestPath();
-            copy.score = this.score;
-            for (let m of this.move) {
-                copy.move.push(m.Clone());
-            }
-            return copy;
-        }
+    class EndgamePieceInfo {
+        public readonly piece: Square;
+        public readonly offset: number;
 
-        public Truncate():void {
-            this.move.length = 0;
+        public constructor(piece:Square, offset:number) {
+            this.piece = piece;
+            this.offset = offset;
         }
     }
 
-    export class Thinker {
-        private nodesVisitedCounter:number = 0;
-        private maxSearchLimit:number = null;
-        private targetTimeInMillis:number = null;
-        private timePollCounter:number = 0;
-        private static readonly timePollLimit:number = 1;
-        private static baseTimeInMillis:number = null;
+    class Position {
+        public readonly index: number;
+        public readonly symmetry: number;
 
-        private static TimeInMillis():number {
-            // I wanted to use performance.now(), but doesn't work on Safari in a worker.
-            var millis = new Date().getTime();
-            if (Thinker.baseTimeInMillis === null) {
-                Thinker.baseTimeInMillis = millis;
-                return 0;
-            }
-            return millis - Thinker.baseTimeInMillis;
+        public constructor(index:number, symmetry:number) {
+            this.index = index;
+            this.symmetry = symmetry;
+        }
+    }
+
+    export class EndgameLookup {
+        public readonly algebraicMove: string;
+        public readonly mateInMoves: number;
+
+        public constructor(algebraicMove:string, mateInMoves:number) {
+            this.algebraicMove = algebraicMove;
+            this.mateInMoves = mateInMoves;
+        }
+    }
+
+    export class Endgame {
+        private readonly data: string[];
+        private readonly pieceList: Square[];
+
+        public constructor(data:string[], pieceList:Square[]) {
+            this.data = data;
+            this.pieceList = pieceList;
         }
 
-        private CheckSearchAborted(limit:number):void {
-            if (limit <= 1) {
-                return;   // Never abort a search that has not completed first level!
-            }
-
-            if (this.maxSearchLimit !== null) {
-                if (limit > this.maxSearchLimit) {
-                    throw new SearchAbortedException(`Exceeded search depth limit = ${this.maxSearchLimit}`);
-                }
-            }
-
-            if (this.targetTimeInMillis !== null) {
-                if (++this.timePollCounter >= Thinker.timePollLimit) {
-                    this.timePollCounter = 0;
-                    var now = Thinker.TimeInMillis();
-                    if (now >= this.targetTimeInMillis) {
-                        throw new SearchAbortedException(`Search time limit exceeded at time ${now}; excess = ${now - this.targetTimeInMillis}`);
+        private static Config(board:Board): EndgamePieceInfo[] {
+            const config:EndgamePieceInfo[] = [];
+            const dict = {};
+            for (let y=0; y < 8; ++y) {
+                for (let x=0; x < 8; ++x) {
+                    const s = board.GetSquareByCoords(x, y);
+                    if (s != Square.Empty) {
+                        dict[s] = (dict[s] || []);
+                        dict[s].push(new EndgamePieceInfo(s, 10*(y+2) + (x+1)));
                     }
                 }
             }
-        }
 
-        public SetMaxSearchLimit(maxLimit:number):void {
-            this.ResetSearchLimit();
-            this.maxSearchLimit = maxLimit;
-        }
+            const pieceOrder = [
+                Square.BlackKing, Square.BlackQueen, Square.BlackRook, Square.BlackBishop, Square.BlackKnight, Square.BlackPawn,
+                Square.WhiteKing, Square.WhiteQueen, Square.WhiteRook, Square.WhiteBishop, Square.WhiteKnight, Square.WhitePawn
+            ];
 
-        public SetTimeLimit(timeLimitInSeconds:number):void {
-            var now = Thinker.TimeInMillis();
-            this.ResetSearchLimit();
-            this.targetTimeInMillis = now + (1000 * timeLimitInSeconds);
-            //console.log(`SetTimeLimit called at ${now}, target = ${this.targetTimeInMillis}`);
-        }
-
-        private ResetSearchLimit():void {
-            this.targetTimeInMillis = null;
-            this.timePollCounter = 0;
-            this.maxSearchLimit = null;
-        }
-
-        public Search(board:Board):BestPath {
-            var bestPath:BestPath = null;
-            var searching = true;
-            for (var limit=1; searching; ++limit) {
-                try {
-                    var nextBestPath:BestPath = new BestPath();
-                    nextBestPath.score = this.InternalSearch(board, limit, 0, nextBestPath, Score.NegInf, Score.PosInf);
-                    bestPath = nextBestPath;    // search was not yet aborted via exception, so update best path
-                    if (bestPath.score >= Score.ForcedWin) {
-                        break;
-                    }
-                } catch (ex) {
-                    if (ex instanceof SearchAbortedException) {
-                        searching = false;  // This is not an error; it is the normal way a search is terminated.
-                    } else {
-                        throw ex;   // This really is an error, so bubble the exception up!
+            for (let p of pieceOrder) {
+                if (dict[p]) {
+                    for (let info of dict[p]) {
+                        config.push(info);
                     }
                 }
             }
-            bestPath.nodes = this.nodesVisitedCounter;
-            return bestPath;
+
+            return config;
         }
 
-        private static MoveRater(board:Board, move:Move):Score {
-            if (board.IsCurrentPlayerInCheck()) {
-                if (!board.CurrentPlayerCanMove()) {
-                    // Put moves that cause checkmate to the very front.
-                    return +2;
-                }
-                // Favor moves that cause check. They are more likely to lead to mate.
-                return +1;
+        private static CalcPosition(symmetry:number, config:EndgamePieceInfo[]): Position {
+            const bkDisplacement = Endgame.SymmetryTable[symmetry][Endgame.Displacements[config[0].offset]];
+            const bkOffset = Endgame.PieceOffsets[bkDisplacement];
+
+            // A position has a valid index only if the Black King is inside
+            // one of the 10 squares indicated by FirstDisplacements.
+            const bkFirst = Endgame.FirstDisplacements[bkOffset];
+            if (bkFirst < 0 || bkFirst > 9) {
+                return null;
             }
-            return 0;
+
+            let index = bkFirst;
+            for (let i=1; i < config.length; ++i) {
+                index = (64 * index) + Endgame.SymmetryTable[symmetry][Endgame.Displacements[config[i].offset]];
+            }
+
+            return new Position(index, symmetry);
         }
 
-        private InternalSearch(
-            board:Board,
-            limit:number,
-            depth:number,
-            bestPath:BestPath,
-            alpha:Score,
-            beta:Score): Score
-        {
-            this.CheckSearchAborted(limit);
-
-            ++this.nodesVisitedCounter;
-
-            bestPath.Truncate();
-
-            if (depth >= limit) {
-                // Recursion cutoff: quickly determine game result and return corresponding score.
-                if (board.IsCurrentPlayerInCheck() && !board.CurrentPlayerCanMove()) {
-                    // See notes below about postponement adjustment.
-                    return Score.CheckmateLoss + depth;
-                }
-                return Score.Draw;
+        public GetMove(board:Board):EndgameLookup {
+            // See if the board contents match the pieceList.
+            const config:EndgamePieceInfo[] = Endgame.Config(board);
+            if (config.length !== this.pieceList.length) {
+                return null;    // this endgame table does not match the board configuration
             }
 
-            let legal:Move[] = board.LegalMoves(Thinker.MoveRater);
-            if (legal.length === 0) {
-                // Either checkmate or stalemate, depending on whether the current player is in check.
-                // Postponement adjustment:
-                // Losing by checkmate is "better" the further it happens in the future.
-                // This motivates avoiding being checkmated as long as possible,
-                // and it also motivates checkmating the opponent as soon as possible.
-                // Without this adjustment, the Thinker might indefinitely postpone a forced win!
-                return board.IsCurrentPlayerInCheck() ? (Score.CheckmateLoss + depth) : Score.Draw;
-            }
-
-            if (board.GetNonStalemateDrawType() !== null) {
-                // There are legal moves, but we found another type of draw like
-                // threefold repetition, insufficient material, etc.
-                return Score.Draw;
-            }
-
-            bestPath.score = Score.NegInf;
-            let bestScore:Score = Score.NegInf;
-            let currPath:BestPath = new BestPath();
-
-            for (let move of legal) {
-                board.PushMove(move);
-                // Tricky: we negate the return value, flip and negate the alpha-beta window.
-                // This is a "negamax" search -- whatever is good for one player is bad for the other.
-                let score:Score = -this.InternalSearch(board, limit, 1+depth, currPath, -beta, -alpha);
-                board.PopMove();
-
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestPath.score = score;
-                    bestPath.move.length = 0;
-                    if (score >= beta) {
-                        // PRUNE: opponent has better choices than the move that led to this position.
-                        break;
-                    }
-                    bestPath.move.push(move);
-                    for (let futureMove of currPath.move) {
-                        bestPath.move.push(futureMove);
-                    }
-                }
-
-                if (score > alpha) {
-                    alpha = score;
+            for (let i=0; i < config.length; ++i) {
+                if (config[i].piece !== this.pieceList[i]) {
+                    return null;    // this endgame table does not match the board configuration
                 }
             }
 
-            return bestScore;
+            // Try all 8 symmetries to find the smallest valid table index.
+            let bestPos:Position = null;
+            for (let symmetry=0; symmetry < 8; ++symmetry) {
+                let pos:Position = Endgame.CalcPosition(symmetry, config);
+                if (pos && (!bestPos || (pos.index < bestPos.index))) {
+                    bestPos = pos;
+                }
+            }
+
+            if (!bestPos) {
+                return null;
+            }
+
+            let result:string = this.data[bestPos.index];
+            if (!result) {
+                return null;
+            }
+
+            // The first 4 characters of result are the algebraic move string.
+            // Any remaining characters encode the number of moves (including this one) for forced mate.
+            let source:number = Board.Offset(result.substr(0, 2));
+            let dest:number = Board.Offset(result.substr(2, 2));
+            let mateInMoves:number = parseInt(result.substr(4));
+
+            // Unrotate the move back to the orientation needed by the caller.
+            let algebraicMove:string = (
+                Board.Algebraic(Endgame.Rotate(bestPos.symmetry, source)) +
+                Board.Algebraic(Endgame.Rotate(bestPos.symmetry, dest))
+            );
+
+            return new EndgameLookup(algebraicMove, mateInMoves);
         }
+
+        private static Rotate(symmetry:number, offset:number): number {
+            return Endgame.PieceOffsets[Endgame.SymmetryTable[Endgame.InverseSymmetry[symmetry]][Endgame.Displacements[offset]]];
+        }
+
+        private static readonly InverseSymmetry = [
+            0, 1, 2, 3, 4, 6, 5, 7
+        ];
+
+        private static readonly FirstDisplacements =
+        [
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,   0,   1,   2,   3,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,   4,   5,   6,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,   7,   8,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,   9,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1
+        ];
+
+        private static readonly Displacements =
+        [
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,   0,   1,   2,   3,   4,   5,   6,   7,  -1,
+           -1,   8,   9,  10,  11,  12,  13,  14,  15,  -1,
+           -1,  16,  17,  18,  19,  20,  21,  22,  23,  -1,
+           -1,  24,  25,  26,  27,  28,  29,  30,  31,  -1,
+           -1,  32,  33,  34,  35,  36,  37,  38,  39,  -1,
+           -1,  40,  41,  42,  43,  44,  45,  46,  47,  -1,
+           -1,  48,  49,  50,  51,  52,  53,  54,  55,  -1,
+           -1,  56,  57,  58,  59,  60,  61,  62,  63,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
+           -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1
+        ];
+
+        private static readonly PieceOffsets =
+        [
+            21, 22, 23, 24, 25, 26, 27, 28,
+            31, 32, 33, 34, 35, 36, 37, 38,
+            41, 42, 43, 44, 45, 46, 47, 48,
+            51, 52, 53, 54, 55, 56, 57, 58,
+            61, 62, 63, 64, 65, 66, 67, 68,
+            71, 72, 73, 74, 75, 76, 77, 78,
+            81, 82, 83, 84, 85, 86, 87, 88,
+            91, 92, 93, 94, 95, 96, 97, 98
+        ];
+
+        private static readonly SymmetryTable =
+        [
+            // 0 = identity
+            [
+                 0,  1,  2,  3,  4,  5,  6,  7,
+                 8,  9, 10, 11, 12, 13, 14, 15,
+                16, 17, 18, 19, 20, 21, 22, 23,
+                24, 25, 26, 27, 28, 29, 30, 31,
+                32, 33, 34, 35, 36, 37, 38, 39,
+                40, 41, 42, 43, 44, 45, 46, 47,
+                48, 49, 50, 51, 52, 53, 54, 55,
+                56, 57, 58, 59, 60, 61, 62, 63
+            ],
+
+            // 1 = flip x
+            [
+                 7,  6,  5,  4,  3,  2,  1,  0,
+                15, 14, 13, 12, 11, 10,  9,  8,
+                23, 22, 21, 20, 19, 18, 17, 16,
+                31, 30, 29, 28, 27, 26, 25, 24,
+                39, 38, 37, 36, 35, 34, 33, 32,
+                47, 46, 45, 44, 43, 42, 41, 40,
+                55, 54, 53, 52, 51, 50, 49, 48,
+                63, 62, 61, 60, 59, 58, 57, 56
+            ],
+
+            // 2 = flip y
+            [
+                56, 57, 58, 59, 60, 61, 62, 63,
+                48, 49, 50, 51, 52, 53, 54, 55,
+                40, 41, 42, 43, 44, 45, 46, 47,
+                32, 33, 34, 35, 36, 37, 38, 39,
+                24, 25, 26, 27, 28, 29, 30, 31,
+                16, 17, 18, 19, 20, 21, 22, 23,
+                 8,  9, 10, 11, 12, 13, 14, 15,
+                 0,  1,  2,  3,  4,  5,  6,  7
+            ],
+
+            // 3 = rotate 180
+            [
+                63, 62, 61, 60, 59, 58, 57, 56,
+                55, 54, 53, 52, 51, 50, 49, 48,
+                47, 46, 45, 44, 43, 42, 41, 40,
+                39, 38, 37, 36, 35, 34, 33, 32,
+                31, 30, 29, 28, 27, 26, 25, 24,
+                23, 22, 21, 20, 19, 18, 17, 16,
+                15, 14, 13, 12, 11, 10,  9,  8,
+                 7,  6,  5,  4,  3,  2,  1,  0
+            ],
+
+            // 4 = slash
+            [
+                0,  8, 16, 24, 32, 40, 48, 56,
+                1,  9, 17, 25, 33, 41, 49, 57,
+                2, 10, 18, 26, 34, 42, 50, 58,
+                3, 11, 19, 27, 35, 43, 51, 59,
+                4, 12, 20, 28, 36, 44, 52, 60,
+                5, 13, 21, 29, 37, 45, 53, 61,
+                6, 14, 22, 30, 38, 46, 54, 62,
+                7, 15, 23, 31, 39, 47, 55, 63
+            ],
+
+            // 5 = rotate right
+            [
+                7, 15, 23, 31, 39, 47, 55, 63,
+                6, 14, 22, 30, 38, 46, 54, 62,
+                5, 13, 21, 29, 37, 45, 53, 61,
+                4, 12, 20, 28, 36, 44, 52, 60,
+                3, 11, 19, 27, 35, 43, 51, 59,
+                2, 10, 18, 26, 34, 42, 50, 58,
+                1,  9, 17, 25, 33, 41, 49, 57,
+                0,  8, 16, 24, 32, 40, 48, 56
+            ],
+
+            // 6 = rotate left
+            [
+                56, 48, 40, 32, 24, 16,  8,  0,
+                57, 49, 41, 33, 25, 17,  9,  1,
+                58, 50, 42, 34, 26, 18, 10,  2,
+                59, 51, 43, 35, 27, 19, 11,  3,
+                60, 52, 44, 36, 28, 20, 12,  4,
+                61, 53, 45, 37, 29, 21, 13,  5,
+                62, 54, 46, 38, 30, 22, 14,  6,
+                63, 55, 47, 39, 31, 23, 15,  7
+            ],
+
+            // 7 = backslash
+            [
+                63, 55, 47, 39, 31, 23, 15,  7,
+                62, 54, 46, 38, 30, 22, 14,  6,
+                61, 53, 45, 37, 29, 21, 13,  5,
+                60, 52, 44, 36, 28, 20, 12,  4,
+                59, 51, 43, 35, 27, 19, 11,  3,
+                58, 50, 42, 34, 26, 18, 10,  2,
+                57, 49, 41, 33, 25, 17,  9,  1,
+                56, 48, 40, 32, 24, 16,  8,  0
+            ],
+        ];
     }
 
     //=====BEGIN HASH SALT=====

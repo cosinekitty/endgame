@@ -419,10 +419,6 @@ module FwDemo {
         document.getElementById('PlayPauseStopButton').setAttribute('src', PlayStopImage(false));
     }
 
-    function GetEndgameMove():string {
-        return Endgame_q.GetTable()[0];
-    }
-
     function DrawBoard(board:Flywheel.Board):void {
         for (let y=0; y < 8; ++y) {
             let ry = RotateFlag ? (7 - y) : y;
@@ -446,9 +442,13 @@ module FwDemo {
             if (PlayerForSide[board.SideToMove()] === PlayerType.Computer) {
                 if (MoveState !== MoveStateType.OpponentTurn) {
                     SetMoveState(MoveStateType.OpponentTurn);
-                    const bestMoveAlg = GetEndgameMove();
+                    const endgame = new Flywheel.Endgame(
+                        Endgame_q.GetTable(),
+                        [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]
+                    );
+                    const bestMoveAlg:Flywheel.EndgameLookup = endgame.GetMove(TheBoard);
                     if (bestMoveAlg) {
-                        AnimateMove(bestMoveAlg);
+                        AnimateMove(bestMoveAlg.algebraicMove);
                     } else {
                         // FIXFIXFIX: what do we do if the endgame analyzer can't find a response?
                         alert('Could not find endgame response.');
