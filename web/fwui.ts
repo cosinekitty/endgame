@@ -37,13 +37,6 @@ module FwDemo {
     var GameHistory:Flywheel.Move[] = [];
     var GameHistoryIndex:number = 0;
 
-    function TriStateDir(enabled:boolean, hover:boolean):string {
-        if (enabled) {
-            return hover ? 'shadow2' : 'shadow1';
-        }
-        return 'shadow0';
-    }
-
     function MakeImageHtml(s:Flywheel.Square):string {
         let fn:string;
         switch (s) {
@@ -733,10 +726,6 @@ module FwDemo {
                 }
             }
         }
-    }
-
-    function CancelComputerThinker():void {
-        MakeBothPlayersHuman();
     }
 
     function InitControls() {

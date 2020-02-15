@@ -36,12 +36,6 @@ var FwDemo;
     // moves that have been undone.
     var GameHistory = [];
     var GameHistoryIndex = 0;
-    function TriStateDir(enabled, hover) {
-        if (enabled) {
-            return hover ? 'shadow2' : 'shadow1';
-        }
-        return 'shadow0';
-    }
     function MakeImageHtml(s) {
         var fn;
         switch (s) {
@@ -675,9 +669,6 @@ var FwDemo;
                 }
             }
         }
-    }
-    function CancelComputerThinker() {
-        MakeBothPlayersHuman();
     }
     function InitControls() {
         BoardDiv.onmousedown = OnSquareMouseDown;
