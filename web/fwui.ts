@@ -9,12 +9,6 @@ module FwDemo {
         GameOver,
     };
 
-    enum PlayStopStateType {    // what icon should we show for the play/pause/stop button?
-        Play,
-        Stop,
-        Pause,
-    };
-
     enum PlayerType {
         Human,
         Computer,
@@ -27,14 +21,11 @@ module FwDemo {
     var SourceSquareInfo;
     var BgDark = '#8FA679';
     var BgPale = '#D4CEA3';
-    var PrevTurnEnabled:boolean = false;
-    var NextTurnEnabled:boolean = false;
-    var PlayStopEnabled:boolean = true;
-    var PlayStopState:PlayStopStateType = PlayStopStateType.Play;
     var BoardDiv: HTMLElement;
     var ResultTextDiv: HTMLElement;
     var PlayerForSide:{[side:number]:PlayerType} = {};
-    MakeBothPlayersHuman();
+    PlayerForSide[Flywheel.Side.White] = PlayerType.Computer;
+    PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
 
     function MakeBothPlayersHuman():void {
         PlayerForSide[Flywheel.Side.White] = PlayerType.Human;
@@ -51,36 +42,6 @@ module FwDemo {
             return hover ? 'shadow2' : 'shadow1';
         }
         return 'shadow0';
-    }
-
-    function PrevButtonImage(hover:boolean):string {
-        return TriStateDir(PrevTurnEnabled, hover) + '/media-step-backward-4x.png';
-    }
-
-    function NextButtonImage(hover:boolean):string {
-        return TriStateDir(NextTurnEnabled, hover) + '/media-step-forward-4x.png';
-    }
-
-    function PlayStopImage(hover:boolean):string {
-        // Figure out which kind of image to show: play, pause, stop.
-        let fn:string;
-        switch (PlayStopState) {
-            case PlayStopStateType.Play:
-                fn = 'media-play-4x.png';
-                break;
-
-            case PlayStopStateType.Stop:
-                fn = 'media-stop-4x.png';
-                break;
-
-            case PlayStopStateType.Pause:
-            default:
-                fn = 'media-pause-4x.png';
-                break;
-        }
-
-        // Figure out whether to show disabled, normal, or highlighted version.
-        return TriStateDir(PlayStopEnabled, hover) + '/' + fn;
     }
 
     function MakeImageHtml(s:Flywheel.Square):string {
@@ -162,23 +123,14 @@ module FwDemo {
         let mediaGroupDx = -15;
         let mediaHorSpacing = 60;
 
-        let html = '<img id="RotateButton" src="shadow1/loop-circular-8x.png" alt="Rotate board" style="position:absolute; width:76px; height:64px; top:'+
-            (SquarePixels*8 +45) + 'px; left: 1px;" title="Rotate board">\n';
-
-        html += '<img id="PrevTurnButton" src="' + PrevButtonImage(false) + '" style="position:absolute; width:44px; height:44px; top:' +
-            (SquarePixels*8 + 55) + 'px; left:' + (SquarePixels*4 - mediaHorSpacing + mediaGroupDx) + 'px;" title="Previous turn">\n';
-
-        html += '<img id="PlayPauseStopButton" src="' + PlayStopImage(false) + '" style="position:absolute; width:44px; height:44px; top:' +
-            (SquarePixels*8 + 55) + 'px; left:' + (SquarePixels*4 + 3 + mediaGroupDx) + 'px;" title="">\n';
-
-        html += '<img id="NextTurnButton" src="' + NextButtonImage(false) + '" style="position:absolute; width:44px; height:44px; top:' +
-            (SquarePixels*8 + 55) + 'px; left:' + (SquarePixels*4 + mediaHorSpacing + mediaGroupDx) + 'px;" title="Next turn">\n';
+        let html = '';
 
         for (y=0; y < 8; ++y) {
             for (x=0; x < 8; ++x) {
                 html += MakeImageContainer(x, y);
             }
         }
+
         for (x=0; x < 8; ++x) {
             html += MakeFileLabel(x);
         }
@@ -372,7 +324,6 @@ module FwDemo {
                 let div = document.getElementById(coords.source.selector);
                 AddClass(div, 'UserCanSelect');
             }
-            PlayStopState = PlayStopStateType.Play;
         } else if (state === MoveStateType.SelectDest) {
             for (let move of legal) {
                 let coords = MoveCoords(move);
@@ -381,12 +332,7 @@ module FwDemo {
                     AddClass(div, 'UserCanSelect');
                 }
             }
-        } else if (state === MoveStateType.OpponentTurn) {
-            // Replace Play button with Pause button (revert to human player).
-            PlayStopState = PlayStopStateType.Pause;
         }
-
-        UpdatePlayControls();
     }
 
     function DrawResultText(result:Flywheel.GameResult):void {
@@ -413,12 +359,6 @@ module FwDemo {
         }
     }
 
-    function UpdatePlayControls():void {
-        document.getElementById('PrevTurnButton').setAttribute('src', PrevButtonImage(false));
-        document.getElementById('NextTurnButton').setAttribute('src', NextButtonImage(false));
-        document.getElementById('PlayPauseStopButton').setAttribute('src', PlayStopImage(false));
-    }
-
     function DrawBoard(board:Flywheel.Board):void {
         for (let y=0; y < 8; ++y) {
             let ry = RotateFlag ? (7 - y) : y;
@@ -431,9 +371,6 @@ module FwDemo {
                 sdiv.innerHTML = MakeImageHtml(sq);
             }
         }
-
-        PrevTurnEnabled = board.CanPopMove();
-        NextTurnEnabled = (GameHistoryIndex < GameHistory.length);
 
         let result = board.GetGameResult();
         DrawResultText(result);
@@ -803,80 +740,6 @@ module FwDemo {
                 sq.onmouseout = OnSquareHoverOut;
             }
         }
-
-        var rotateButton = document.getElementById('RotateButton');
-        rotateButton.onclick = function(){
-            RotateFlag = !RotateFlag;
-            DrawBoard(TheBoard);
-        };
-
-        rotateButton.onmouseover = function(){
-            rotateButton.setAttribute('src', 'shadow2/loop-circular-8x.png');
-        };
-
-        rotateButton.onmouseout = function(){
-            rotateButton.setAttribute('src', 'shadow1/loop-circular-8x.png');
-        };
-
-        var prevTurnButton = document.getElementById('PrevTurnButton');
-        prevTurnButton.onclick = function(){
-            if (PrevTurnEnabled) {
-                CancelComputerThinker();
-                TheBoard.PopMove();
-                --GameHistoryIndex;
-                DrawBoard(TheBoard);
-            }
-        };
-
-        prevTurnButton.onmouseover = function(){
-            prevTurnButton.setAttribute('src', PrevButtonImage(true));
-        };
-
-        prevTurnButton.onmouseout = function(){
-            prevTurnButton.setAttribute('src', PrevButtonImage(false));
-        };
-
-        var nextTurnButton = document.getElementById('NextTurnButton');
-        nextTurnButton.onclick = function(){
-            // click
-            if (NextTurnEnabled) {
-                CancelComputerThinker();
-                TheBoard.PushMove(GameHistory[GameHistoryIndex++]);
-                DrawBoard(TheBoard);
-            }
-        };
-
-        nextTurnButton.onmouseover = function(){
-            nextTurnButton.setAttribute('src', NextButtonImage(true));
-        };
-
-        nextTurnButton.onmouseout = function(){
-            nextTurnButton.setAttribute('src', NextButtonImage(false));
-        };
-
-        var playPauseStopButton = document.getElementById('PlayPauseStopButton');
-        playPauseStopButton.onclick = function(){
-            if (PlayStopEnabled) {
-                if (PlayStopState === PlayStopStateType.Play) {
-                    // Human's turn. Switch current player to Computer, opposite player to Human.
-                    PlayerForSide[TheBoard.SideToMove()] = PlayerType.Computer;
-                    PlayerForSide[Flywheel.OppositeSide(TheBoard.SideToMove())] = PlayerType.Human;
-                    DrawBoard(TheBoard);
-                } else if (PlayStopState === PlayStopStateType.Pause) {
-                    // Computer is thinking. Abort thinking and set both players to Human.
-                    CancelComputerThinker();
-                    DrawBoard(TheBoard);
-                }
-            }
-        };
-
-        playPauseStopButton.onmouseover = function(){
-            playPauseStopButton.setAttribute('src', PlayStopImage(true));
-        };
-
-        playPauseStopButton.onmouseout = function(){
-            playPauseStopButton.setAttribute('src', PlayStopImage(false));
-        };
     }
 
     export function InitPage() {

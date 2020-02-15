@@ -10,13 +10,6 @@ var FwDemo;
         MoveStateType[MoveStateType["GameOver"] = 4] = "GameOver";
     })(MoveStateType || (MoveStateType = {}));
     ;
-    var PlayStopStateType;
-    (function (PlayStopStateType) {
-        PlayStopStateType[PlayStopStateType["Play"] = 0] = "Play";
-        PlayStopStateType[PlayStopStateType["Stop"] = 1] = "Stop";
-        PlayStopStateType[PlayStopStateType["Pause"] = 2] = "Pause";
-    })(PlayStopStateType || (PlayStopStateType = {}));
-    ;
     var PlayerType;
     (function (PlayerType) {
         PlayerType[PlayerType["Human"] = 0] = "Human";
@@ -30,14 +23,11 @@ var FwDemo;
     var SourceSquareInfo;
     var BgDark = '#8FA679';
     var BgPale = '#D4CEA3';
-    var PrevTurnEnabled = false;
-    var NextTurnEnabled = false;
-    var PlayStopEnabled = true;
-    var PlayStopState = PlayStopStateType.Play;
     var BoardDiv;
     var ResultTextDiv;
     var PlayerForSide = {};
-    MakeBothPlayersHuman();
+    PlayerForSide[Flywheel.Side.White] = PlayerType.Computer;
+    PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
     function MakeBothPlayersHuman() {
         PlayerForSide[Flywheel.Side.White] = PlayerType.Human;
         PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
@@ -51,30 +41,6 @@ var FwDemo;
             return hover ? 'shadow2' : 'shadow1';
         }
         return 'shadow0';
-    }
-    function PrevButtonImage(hover) {
-        return TriStateDir(PrevTurnEnabled, hover) + '/media-step-backward-4x.png';
-    }
-    function NextButtonImage(hover) {
-        return TriStateDir(NextTurnEnabled, hover) + '/media-step-forward-4x.png';
-    }
-    function PlayStopImage(hover) {
-        // Figure out which kind of image to show: play, pause, stop.
-        var fn;
-        switch (PlayStopState) {
-            case PlayStopStateType.Play:
-                fn = 'media-play-4x.png';
-                break;
-            case PlayStopStateType.Stop:
-                fn = 'media-stop-4x.png';
-                break;
-            case PlayStopStateType.Pause:
-            default:
-                fn = 'media-pause-4x.png';
-                break;
-        }
-        // Figure out whether to show disabled, normal, or highlighted version.
-        return TriStateDir(PlayStopEnabled, hover) + '/' + fn;
     }
     function MakeImageHtml(s) {
         var fn;
@@ -166,14 +132,7 @@ var FwDemo;
         var x, y;
         var mediaGroupDx = -15;
         var mediaHorSpacing = 60;
-        var html = '<img id="RotateButton" src="shadow1/loop-circular-8x.png" alt="Rotate board" style="position:absolute; width:76px; height:64px; top:' +
-            (SquarePixels * 8 + 45) + 'px; left: 1px;" title="Rotate board">\n';
-        html += '<img id="PrevTurnButton" src="' + PrevButtonImage(false) + '" style="position:absolute; width:44px; height:44px; top:' +
-            (SquarePixels * 8 + 55) + 'px; left:' + (SquarePixels * 4 - mediaHorSpacing + mediaGroupDx) + 'px;" title="Previous turn">\n';
-        html += '<img id="PlayPauseStopButton" src="' + PlayStopImage(false) + '" style="position:absolute; width:44px; height:44px; top:' +
-            (SquarePixels * 8 + 55) + 'px; left:' + (SquarePixels * 4 + 3 + mediaGroupDx) + 'px;" title="">\n';
-        html += '<img id="NextTurnButton" src="' + NextButtonImage(false) + '" style="position:absolute; width:44px; height:44px; top:' +
-            (SquarePixels * 8 + 55) + 'px; left:' + (SquarePixels * 4 + mediaHorSpacing + mediaGroupDx) + 'px;" title="Next turn">\n';
+        var html = '';
         for (y = 0; y < 8; ++y) {
             for (x = 0; x < 8; ++x) {
                 html += MakeImageContainer(x, y);
@@ -355,7 +314,6 @@ var FwDemo;
                 var div = document.getElementById(coords.source.selector);
                 AddClass(div, 'UserCanSelect');
             }
-            PlayStopState = PlayStopStateType.Play;
         }
         else if (state === MoveStateType.SelectDest) {
             for (var _a = 0, legal_2 = legal; _a < legal_2.length; _a++) {
@@ -367,11 +325,6 @@ var FwDemo;
                 }
             }
         }
-        else if (state === MoveStateType.OpponentTurn) {
-            // Replace Play button with Pause button (revert to human player).
-            PlayStopState = PlayStopStateType.Pause;
-        }
-        UpdatePlayControls();
     }
     function DrawResultText(result) {
         var rhtml;
@@ -394,11 +347,6 @@ var FwDemo;
             ResultTextDiv.style.display = 'none';
         }
     }
-    function UpdatePlayControls() {
-        document.getElementById('PrevTurnButton').setAttribute('src', PrevButtonImage(false));
-        document.getElementById('NextTurnButton').setAttribute('src', NextButtonImage(false));
-        document.getElementById('PlayPauseStopButton').setAttribute('src', PlayStopImage(false));
-    }
     function DrawBoard(board) {
         for (var y = 0; y < 8; ++y) {
             var ry = RotateFlag ? (7 - y) : y;
@@ -411,8 +359,6 @@ var FwDemo;
                 sdiv.innerHTML = MakeImageHtml(sq);
             }
         }
-        PrevTurnEnabled = board.CanPopMove();
-        NextTurnEnabled = (GameHistoryIndex < GameHistory.length);
         var result = board.GetGameResult();
         DrawResultText(result);
         if (result.status === Flywheel.GameStatus.InProgress) {
@@ -739,69 +685,6 @@ var FwDemo;
                 sq.onmouseout = OnSquareHoverOut;
             }
         }
-        var rotateButton = document.getElementById('RotateButton');
-        rotateButton.onclick = function () {
-            RotateFlag = !RotateFlag;
-            DrawBoard(TheBoard);
-        };
-        rotateButton.onmouseover = function () {
-            rotateButton.setAttribute('src', 'shadow2/loop-circular-8x.png');
-        };
-        rotateButton.onmouseout = function () {
-            rotateButton.setAttribute('src', 'shadow1/loop-circular-8x.png');
-        };
-        var prevTurnButton = document.getElementById('PrevTurnButton');
-        prevTurnButton.onclick = function () {
-            if (PrevTurnEnabled) {
-                CancelComputerThinker();
-                TheBoard.PopMove();
-                --GameHistoryIndex;
-                DrawBoard(TheBoard);
-            }
-        };
-        prevTurnButton.onmouseover = function () {
-            prevTurnButton.setAttribute('src', PrevButtonImage(true));
-        };
-        prevTurnButton.onmouseout = function () {
-            prevTurnButton.setAttribute('src', PrevButtonImage(false));
-        };
-        var nextTurnButton = document.getElementById('NextTurnButton');
-        nextTurnButton.onclick = function () {
-            // click
-            if (NextTurnEnabled) {
-                CancelComputerThinker();
-                TheBoard.PushMove(GameHistory[GameHistoryIndex++]);
-                DrawBoard(TheBoard);
-            }
-        };
-        nextTurnButton.onmouseover = function () {
-            nextTurnButton.setAttribute('src', NextButtonImage(true));
-        };
-        nextTurnButton.onmouseout = function () {
-            nextTurnButton.setAttribute('src', NextButtonImage(false));
-        };
-        var playPauseStopButton = document.getElementById('PlayPauseStopButton');
-        playPauseStopButton.onclick = function () {
-            if (PlayStopEnabled) {
-                if (PlayStopState === PlayStopStateType.Play) {
-                    // Human's turn. Switch current player to Computer, opposite player to Human.
-                    PlayerForSide[TheBoard.SideToMove()] = PlayerType.Computer;
-                    PlayerForSide[Flywheel.OppositeSide(TheBoard.SideToMove())] = PlayerType.Human;
-                    DrawBoard(TheBoard);
-                }
-                else if (PlayStopState === PlayStopStateType.Pause) {
-                    // Computer is thinking. Abort thinking and set both players to Human.
-                    CancelComputerThinker();
-                    DrawBoard(TheBoard);
-                }
-            }
-        };
-        playPauseStopButton.onmouseover = function () {
-            playPauseStopButton.setAttribute('src', PlayStopImage(true));
-        };
-        playPauseStopButton.onmouseout = function () {
-            playPauseStopButton.setAttribute('src', PlayStopImage(false));
-        };
     }
     function InitPage() {
         BoardDiv = document.getElementById('DivBoard');
