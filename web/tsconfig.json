@@ -22,7 +22,8 @@
     "files": [
         "./flywheel.ts",
         "./fwui.ts",
-        "./endgame_q.ts"
+        "./endgame_q.ts",
+        "./endgame_r.ts"
     ],
     "atom": {
         "rewriteTsconfig": true

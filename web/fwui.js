@@ -17,7 +17,7 @@ var FwDemo;
     })(PlayerType || (PlayerType = {}));
     ;
     var SquarePixels = 70;
-    var TheBoard = new Flywheel.Board('8/8/8/8/4k3/8/8/Q6K b - - 0 1');
+    var TheBoard = new Flywheel.Board('8/8/8/8/4k3/8/8/R6K b - - 0 1');
     var RotateFlag = false;
     var MoveState = MoveStateType.SelectSource;
     var SourceSquareInfo;
@@ -347,6 +347,9 @@ var FwDemo;
             ResultTextDiv.style.display = 'none';
         }
     }
+    var endgame_q = new Flywheel.Endgame(Endgame_q.GetTable(), [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]);
+    var endgame_r = new Flywheel.Endgame(Endgame_r.GetTable(), [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteRook]);
+    var KnownEndgames = [endgame_q, endgame_r];
     function DrawBoard(board) {
         for (var y = 0; y < 8; ++y) {
             var ry = RotateFlag ? (7 - y) : y;
@@ -365,15 +368,16 @@ var FwDemo;
             if (PlayerForSide[board.SideToMove()] === PlayerType.Computer) {
                 if (MoveState !== MoveStateType.OpponentTurn) {
                     SetMoveState(MoveStateType.OpponentTurn);
-                    var endgame = new Flywheel.Endgame(Endgame_q.GetTable(), [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]);
-                    var bestMoveAlg = endgame.GetMove(TheBoard);
-                    if (bestMoveAlg) {
-                        AnimateMove(bestMoveAlg.algebraicMove);
+                    for (var _i = 0, KnownEndgames_1 = KnownEndgames; _i < KnownEndgames_1.length; _i++) {
+                        var endgame = KnownEndgames_1[_i];
+                        var response = endgame.GetMove(TheBoard);
+                        if (response) {
+                            AnimateMove(response.algebraicMove);
+                            // FIXFIXFIX: render number of moves remaining until mate
+                            return;
+                        }
                     }
-                    else {
-                        // FIXFIXFIX: what do we do if the endgame analyzer can't find a response?
-                        alert('Could not find endgame response.');
-                    }
+                    alert('Could not find endgame response.');
                 }
             }
             else {

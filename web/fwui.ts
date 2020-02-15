@@ -15,7 +15,7 @@ module FwDemo {
     };
 
     var SquarePixels:number = 70;
-    var TheBoard:Flywheel.Board = new Flywheel.Board('8/8/8/8/4k3/8/8/Q6K b - - 0 1');
+    var TheBoard:Flywheel.Board = new Flywheel.Board('8/8/8/8/4k3/8/8/R6K b - - 0 1');
     var RotateFlag:boolean = false;
     var MoveState:MoveStateType = MoveStateType.SelectSource;
     var SourceSquareInfo;
@@ -359,6 +359,18 @@ module FwDemo {
         }
     }
 
+    const endgame_q = new Flywheel.Endgame(
+        Endgame_q.GetTable(),
+        [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]
+    );
+
+    const endgame_r = new Flywheel.Endgame(
+        Endgame_r.GetTable(),
+        [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteRook]
+    );
+
+    const KnownEndgames = [endgame_q, endgame_r];
+
     function DrawBoard(board:Flywheel.Board):void {
         for (let y=0; y < 8; ++y) {
             let ry = RotateFlag ? (7 - y) : y;
@@ -379,17 +391,15 @@ module FwDemo {
             if (PlayerForSide[board.SideToMove()] === PlayerType.Computer) {
                 if (MoveState !== MoveStateType.OpponentTurn) {
                     SetMoveState(MoveStateType.OpponentTurn);
-                    const endgame = new Flywheel.Endgame(
-                        Endgame_q.GetTable(),
-                        [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]
-                    );
-                    const bestMoveAlg:Flywheel.EndgameLookup = endgame.GetMove(TheBoard);
-                    if (bestMoveAlg) {
-                        AnimateMove(bestMoveAlg.algebraicMove);
-                    } else {
-                        // FIXFIXFIX: what do we do if the endgame analyzer can't find a response?
-                        alert('Could not find endgame response.');
+                    for (let endgame of KnownEndgames) {
+                        const response:Flywheel.EndgameLookup = endgame.GetMove(TheBoard);
+                        if (response) {
+                            AnimateMove(response.algebraicMove);
+                            // FIXFIXFIX: render number of moves remaining until mate
+                            return;
+                        }
                     }
+                    alert('Could not find endgame response.');
                 }
             } else {
                 SetMoveState(MoveStateType.SelectSource);
