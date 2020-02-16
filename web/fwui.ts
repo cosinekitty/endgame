@@ -16,7 +16,7 @@ module FwDemo {
 
     const PositionList = [
         '8/8/8/8/4k3/8/8/R6K b - - 0 1',
-        '8/8/8/8/4k3/8/8/Q6K b - - 0 1'
+        '8/2Q5/8/8/4k3/8/6K1/8 b - - 0 1'
     ];
     let PositionIndex = 0;
 
