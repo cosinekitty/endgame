@@ -46,7 +46,7 @@ body {
     vertical-align: middle;
     font-family: serif;
     color: rgba(255, 118, 66, 1.0);
-    text-shadow: 2px 3px 1px rgba(0, 0, 0, 0.45);
+    text-shadow: 2px 3px 3px rgba(0, 0, 0, 0.45);
 }
 
 .ChessPromptText {
@@ -57,7 +57,8 @@ body {
     font-size: 28px;
     text-align: center;
     vertical-align: middle;
-    color: rgba(0, 0, 0, 1.0);
+    color: rgba(140, 0, 0, 1.0);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.45);
     font-family: sans-serif;
 }
 

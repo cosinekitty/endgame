@@ -29,10 +29,6 @@ var FwDemo;
     var PlayerForSide = {};
     PlayerForSide[Flywheel.Side.White] = PlayerType.Computer;
     PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
-    function MakeBothPlayersHuman() {
-        PlayerForSide[Flywheel.Side.White] = PlayerType.Human;
-        PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
-    }
     // The chess board stores the history, but we need to be able to redo
     // moves that have been undone.
     var GameHistory = [];
@@ -632,7 +628,11 @@ var FwDemo;
         if (e.which === 1) { // primary mouse button
             var bc = BoardCoords(e);
             if (bc) {
-                if (MoveState === MoveStateType.SelectDest) {
+                if (MoveState === MoveStateType.GameOver) {
+                    TheBoard.SetForsythEdwardsNotation('8/8/8/8/4k3/8/8/R6K b - - 0 1');
+                    DrawBoard(TheBoard);
+                }
+                else if (MoveState === MoveStateType.SelectDest) {
                     // Support two styles of moving chess pieces:
                     // 1. Dragging pieces from source square to target square.
                     // 2. Clicking on source square, then clicking on target square.
