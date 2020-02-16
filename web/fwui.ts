@@ -760,6 +760,8 @@ module FwDemo {
         BoardDiv = document.getElementById('DivBoard');
         InitBoardDisplay();
         DrawBoard(TheBoard);
+        PromptTextDiv.innerText = 'Move the Black King to start playing.';
+        PromptTextDiv.style.display = '';
         InitControls();
     }
 }
