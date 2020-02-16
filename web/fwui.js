@@ -22,6 +22,7 @@ var FwDemo;
     ];
     var PositionIndex = 0;
     var SquarePixels = 70;
+    var MateInMoves = null;
     var TheBoard = new Flywheel.Board(PositionList[PositionIndex]);
     var RotateFlag = false;
     var MoveState = MoveStateType.SelectSource;
@@ -329,6 +330,14 @@ var FwDemo;
             }
         }
     }
+    function ShowPrompt(text) {
+        PromptTextDiv.innerText = text;
+        PromptTextDiv.style.display = '';
+    }
+    function ErasePrompt() {
+        PromptTextDiv.style.display = 'none';
+        PromptTextDiv.innerText = '';
+    }
     function DrawResultText(result) {
         var rhtml;
         switch (result.status) {
@@ -345,12 +354,16 @@ var FwDemo;
         if (rhtml) {
             ResultTextDiv.innerHTML = rhtml;
             ResultTextDiv.style.display = '';
-            PromptTextDiv.innerText = 'Click anywhere on the board to play again.';
-            PromptTextDiv.style.display = '';
+            ShowPrompt('Click anywhere on the board to play again.');
         }
         else {
             ResultTextDiv.style.display = 'none';
-            PromptTextDiv.style.display = 'none';
+            if (MateInMoves !== null) {
+                ShowPrompt("Mate in " + MateInMoves);
+            }
+            else {
+                ErasePrompt();
+            }
         }
     }
     var endgame_q = new Flywheel.Endgame(Endgame_q.GetTable(), [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]);
@@ -378,8 +391,7 @@ var FwDemo;
                         var endgame = KnownEndgames_1[_i];
                         var response = endgame.GetMove(TheBoard);
                         if (response) {
-                            AnimateMove(response.algebraicMove);
-                            // FIXFIXFIX: render number of moves remaining until mate
+                            AnimateMove(response);
                             return;
                         }
                     }
@@ -462,9 +474,9 @@ var FwDemo;
             }
         }
     }
-    function AnimateMove(notation) {
+    function AnimateMove(response) {
         // FIXFIXFIX: Lock controls while the piece is sliding across the board.
-        var coords = SourceDestCoords(notation);
+        var coords = SourceDestCoords(response.algebraicMove);
         var ldx = coords.dest.screenX - coords.source.screenX;
         var ldy = coords.dest.screenY - coords.source.screenY;
         var linearPixelDistance = Math.round(SquarePixels * Math.sqrt(ldx * ldx + ldy * ldy));
@@ -475,6 +487,7 @@ var FwDemo;
         var image = coords.source.squareDiv.children[0];
         image.style.position = 'absolute';
         image.style.zIndex = '1';
+        ErasePrompt();
         var intervalId = window.setInterval(function () {
             if (++frameCounter <= numFrames) {
                 var fraction = frameCounter / numFrames;
@@ -485,7 +498,13 @@ var FwDemo;
             }
             else {
                 window.clearInterval(intervalId);
-                CommitMove(notation);
+                if (response.mateInMoves > 1) {
+                    MateInMoves = response.mateInMoves - 1; // subtract 1 for the move we just made
+                }
+                else {
+                    MateInMoves = null;
+                }
+                CommitMove(response.algebraicMove);
             }
         }, millisPerFrame);
     }
@@ -636,6 +655,7 @@ var FwDemo;
                 if (MoveState === MoveStateType.GameOver) {
                     PositionIndex = (PositionIndex + 1) % PositionList.length;
                     TheBoard.SetForsythEdwardsNotation(PositionList[PositionIndex]);
+                    MateInMoves = null;
                     DrawBoard(TheBoard);
                 }
                 else if (MoveState === MoveStateType.SelectDest) {

@@ -21,6 +21,7 @@ module FwDemo {
     let PositionIndex = 0;
 
     var SquarePixels:number = 70;
+    var MateInMoves:number = null;
     var TheBoard:Flywheel.Board = new Flywheel.Board(PositionList[PositionIndex]);
     var RotateFlag:boolean = false;
     var MoveState:MoveStateType = MoveStateType.SelectSource;
@@ -336,6 +337,16 @@ module FwDemo {
         }
     }
 
+    function ShowPrompt(text:string):void {
+        PromptTextDiv.innerText = text;
+        PromptTextDiv.style.display = '';
+    }
+
+    function ErasePrompt():void {
+        PromptTextDiv.style.display = 'none';
+        PromptTextDiv.innerText = '';
+    }
+
     function DrawResultText(result:Flywheel.GameResult):void {
         let rhtml:string;
         switch (result.status) {
@@ -355,11 +366,14 @@ module FwDemo {
         if (rhtml) {
             ResultTextDiv.innerHTML = rhtml;
             ResultTextDiv.style.display = '';
-            PromptTextDiv.innerText = 'Click anywhere on the board to play again.';
-            PromptTextDiv.style.display = '';
+            ShowPrompt('Click anywhere on the board to play again.');
         } else {
             ResultTextDiv.style.display = 'none';
-            PromptTextDiv.style.display = 'none';
+            if (MateInMoves !== null) {
+                ShowPrompt(`Mate in ${MateInMoves}`);
+            } else {
+                ErasePrompt();
+            }
         }
     }
 
@@ -398,8 +412,7 @@ module FwDemo {
                     for (let endgame of KnownEndgames) {
                         const response:Flywheel.EndgameLookup = endgame.GetMove(TheBoard);
                         if (response) {
-                            AnimateMove(response.algebraicMove);
-                            // FIXFIXFIX: render number of moves remaining until mate
+                            AnimateMove(response);
                             return;
                         }
                     }
@@ -495,9 +508,9 @@ module FwDemo {
         }
     }
 
-    function AnimateMove(notation:string):void {
+    function AnimateMove(response:Flywheel.EndgameLookup):void {
         // FIXFIXFIX: Lock controls while the piece is sliding across the board.
-        var coords = SourceDestCoords(notation);
+        var coords = SourceDestCoords(response.algebraicMove);
         var ldx = coords.dest.screenX - coords.source.screenX;
         var ldy = coords.dest.screenY - coords.source.screenY;
         var linearPixelDistance = Math.round(SquarePixels * Math.sqrt(ldx*ldx + ldy*ldy));
@@ -509,6 +522,8 @@ module FwDemo {
         image.style.position = 'absolute';
         image.style.zIndex = '1';
 
+        ErasePrompt();
+
         var intervalId = window.setInterval(function(){
             if (++frameCounter <= numFrames) {
                 var fraction = frameCounter / numFrames;
@@ -518,7 +533,12 @@ module FwDemo {
                 image.style.top = py.toFixed() + 'px';
             } else {
                 window.clearInterval(intervalId);
-                CommitMove(notation);
+                if (response.mateInMoves > 1) {
+                    MateInMoves = response.mateInMoves - 1;     // subtract 1 for the move we just made
+                } else {
+                    MateInMoves = null;
+                }
+                CommitMove(response.algebraicMove);
             }
         }, millisPerFrame);
     }
@@ -688,6 +708,7 @@ module FwDemo {
                 if (MoveState === MoveStateType.GameOver) {
                     PositionIndex = (PositionIndex + 1) % PositionList.length;
                     TheBoard.SetForsythEdwardsNotation(PositionList[PositionIndex]);
+                    MateInMoves = null;
                     DrawBoard(TheBoard);
                 } else if (MoveState === MoveStateType.SelectDest) {
                     // Support two styles of moving chess pieces:
