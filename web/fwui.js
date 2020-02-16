@@ -25,6 +25,7 @@ var FwDemo;
     var BgPale = '#D4CEA3';
     var BoardDiv;
     var ResultTextDiv;
+    var PromptTextDiv;
     var PlayerForSide = {};
     PlayerForSide[Flywheel.Side.White] = PlayerType.Computer;
     PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
@@ -122,10 +123,17 @@ var FwDemo;
         div.style.display = 'none';
         return div;
     }
+    function MakeChessPromptDiv() {
+        var div = document.createElement('div');
+        div.id = 'PromptText';
+        div.className = 'ChessPromptText';
+        div.style.width = (8 * SquarePixels).toFixed() + 'px';
+        div.style.height = div.style.lineHeight = (5 * SquarePixels).toFixed() + 'px';
+        div.style.display = 'none';
+        return div;
+    }
     function InitBoardDisplay() {
         var x, y;
-        var mediaGroupDx = -15;
-        var mediaHorSpacing = 60;
         var html = '';
         for (y = 0; y < 8; ++y) {
             for (x = 0; x < 8; ++x) {
@@ -140,8 +148,8 @@ var FwDemo;
         }
         html += MakeSpriteContainer();
         BoardDiv.innerHTML = html;
-        ResultTextDiv = MakeResultTextDiv();
-        BoardDiv.appendChild(ResultTextDiv);
+        BoardDiv.appendChild(PromptTextDiv = MakeChessPromptDiv());
+        BoardDiv.appendChild(ResultTextDiv = MakeResultTextDiv());
     }
     function AlgCoords(alg) {
         var chessX = 'abcdefgh'.indexOf(alg.charAt(0));
@@ -336,9 +344,12 @@ var FwDemo;
         if (rhtml) {
             ResultTextDiv.innerHTML = rhtml;
             ResultTextDiv.style.display = '';
+            PromptTextDiv.innerText = 'Click anywhere on the board to play again.';
+            PromptTextDiv.style.display = '';
         }
         else {
             ResultTextDiv.style.display = 'none';
+            PromptTextDiv.style.display = 'none';
         }
     }
     var endgame_q = new Flywheel.Endgame(Endgame_q.GetTable(), [Flywheel.Square.BlackKing, Flywheel.Square.WhiteKing, Flywheel.Square.WhiteQueen]);

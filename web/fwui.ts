@@ -23,6 +23,7 @@ module FwDemo {
     var BgPale = '#D4CEA3';
     var BoardDiv: HTMLElement;
     var ResultTextDiv: HTMLElement;
+    var PromptTextDiv: HTMLElement;
     var PlayerForSide:{[side:number]:PlayerType} = {};
     PlayerForSide[Flywheel.Side.White] = PlayerType.Computer;
     PlayerForSide[Flywheel.Side.Black] = PlayerType.Human;
@@ -110,11 +111,18 @@ module FwDemo {
         return div;
     }
 
-    function InitBoardDisplay():void {
-        var x, y;
+    function MakeChessPromptDiv():HTMLElement {
+        var div = document.createElement('div');
+        div.id = 'PromptText';
+        div.className = 'ChessPromptText';
+        div.style.width = (8 * SquarePixels).toFixed() + 'px';
+        div.style.height = div.style.lineHeight = (5 * SquarePixels).toFixed() + 'px';
+        div.style.display = 'none';
+        return div;
+    }
 
-        let mediaGroupDx = -15;
-        let mediaHorSpacing = 60;
+    function InitBoardDisplay():void {
+        var x:number, y:number;
 
         let html = '';
 
@@ -134,9 +142,8 @@ module FwDemo {
         html += MakeSpriteContainer();
 
         BoardDiv.innerHTML = html;
-
-        ResultTextDiv = MakeResultTextDiv();
-        BoardDiv.appendChild(ResultTextDiv);
+        BoardDiv.appendChild(PromptTextDiv = MakeChessPromptDiv());
+        BoardDiv.appendChild(ResultTextDiv = MakeResultTextDiv());
     }
 
     function AlgCoords(alg:string) {
@@ -252,7 +259,7 @@ module FwDemo {
             mouseUpOnSourceSquare: false,
         };
 
-        var hoveredSquareDiv;
+        var hoveredSquareDiv: HTMLElement;
 
         BoardDiv.onmousemove = function(e) {
             var bc = BoardCoords(e);
@@ -347,8 +354,11 @@ module FwDemo {
         if (rhtml) {
             ResultTextDiv.innerHTML = rhtml;
             ResultTextDiv.style.display = '';
+            PromptTextDiv.innerText = 'Click anywhere on the board to play again.';
+            PromptTextDiv.style.display = '';
         } else {
             ResultTextDiv.style.display = 'none';
+            PromptTextDiv.style.display = 'none';
         }
     }
 
