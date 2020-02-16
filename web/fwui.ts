@@ -14,8 +14,14 @@ module FwDemo {
         Computer,
     };
 
+    const PositionList = [
+        '8/8/8/8/4k3/8/8/R6K b - - 0 1',
+        '8/8/8/8/4k3/8/8/Q6K b - - 0 1'
+    ];
+    let PositionIndex = 0;
+
     var SquarePixels:number = 70;
-    var TheBoard:Flywheel.Board = new Flywheel.Board('8/8/8/8/4k3/8/8/R6K b - - 0 1');
+    var TheBoard:Flywheel.Board = new Flywheel.Board(PositionList[PositionIndex]);
     var RotateFlag:boolean = false;
     var MoveState:MoveStateType = MoveStateType.SelectSource;
     var SourceSquareInfo;
@@ -680,7 +686,8 @@ module FwDemo {
             let bc = BoardCoords(e);
             if (bc) {
                 if (MoveState === MoveStateType.GameOver) {
-                    TheBoard.SetForsythEdwardsNotation('8/8/8/8/4k3/8/8/R6K b - - 0 1');
+                    PositionIndex = (PositionIndex + 1) % PositionList.length;
+                    TheBoard.SetForsythEdwardsNotation(PositionList[PositionIndex]);
                     DrawBoard(TheBoard);
                 } else if (MoveState === MoveStateType.SelectDest) {
                     // Support two styles of moving chess pieces:

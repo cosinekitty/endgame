@@ -16,8 +16,13 @@ var FwDemo;
         PlayerType[PlayerType["Computer"] = 1] = "Computer";
     })(PlayerType || (PlayerType = {}));
     ;
+    var PositionList = [
+        '8/8/8/8/4k3/8/8/R6K b - - 0 1',
+        '8/8/8/8/4k3/8/8/Q6K b - - 0 1'
+    ];
+    var PositionIndex = 0;
     var SquarePixels = 70;
-    var TheBoard = new Flywheel.Board('8/8/8/8/4k3/8/8/R6K b - - 0 1');
+    var TheBoard = new Flywheel.Board(PositionList[PositionIndex]);
     var RotateFlag = false;
     var MoveState = MoveStateType.SelectSource;
     var SourceSquareInfo;
@@ -629,7 +634,8 @@ var FwDemo;
             var bc = BoardCoords(e);
             if (bc) {
                 if (MoveState === MoveStateType.GameOver) {
-                    TheBoard.SetForsythEdwardsNotation('8/8/8/8/4k3/8/8/R6K b - - 0 1');
+                    PositionIndex = (PositionIndex + 1) % PositionList.length;
+                    TheBoard.SetForsythEdwardsNotation(PositionList[PositionIndex]);
                     DrawBoard(TheBoard);
                 }
                 else if (MoveState === MoveStateType.SelectDest) {
