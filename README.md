@@ -2,7 +2,7 @@
 
 This is a demo of an algorithm for generating and using chess endgame databases.
 
-The directory `generate` contains C++ code that generates the endgame databases. It outputs data in TypeScript format.
+The directory `generate` contains C++ code that generates the endgame databases. In Linux, use the bash script `generate/build` to compile the C++ code. In Windows, use the Visual Studio solution `windows/endgame/endgame.sln`.
 
 The directory `web` contains a browser-based demo of using the generated databases.
 
