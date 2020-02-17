@@ -22,7 +22,7 @@ module FwDemo {
     ];
     let PositionIndex = 0;
 
-    var SquarePixels:number = 70;
+    var SquarePixels:number = 40;
     var MateInMoves:number = null;
     var TheBoard:Flywheel.Board = new Flywheel.Board(PositionList[PositionIndex]);
     var RotateFlag:boolean = false;
@@ -63,7 +63,7 @@ module FwDemo {
                 return '';
         }
 
-        fn = './pieces/' + fn + '.png';
+        fn = './smallpieces/' + fn + '.png';
         return '<img src="' + fn + '" width="' + SquarePixels + '" height="' + SquarePixels + '">';
     }
 
@@ -368,7 +368,7 @@ module FwDemo {
         if (rhtml) {
             ResultTextDiv.innerHTML = rhtml;
             ResultTextDiv.style.display = '';
-            ShowPrompt('Click anywhere on the board to play again.');
+            ShowPrompt('Click to play again.');
         } else {
             ResultTextDiv.style.display = 'none';
             if (MateInMoves !== null) {

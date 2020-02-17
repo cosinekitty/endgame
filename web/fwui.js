@@ -23,7 +23,7 @@ var FwDemo;
         'R7/K7/2k5/8/8/8/8/8 b - - 0 1'
     ];
     var PositionIndex = 0;
-    var SquarePixels = 70;
+    var SquarePixels = 40;
     var MateInMoves = null;
     var TheBoard = new Flywheel.Board(PositionList[PositionIndex]);
     var RotateFlag = false;
@@ -83,7 +83,7 @@ var FwDemo;
             default:
                 return '';
         }
-        fn = './pieces/' + fn + '.png';
+        fn = './smallpieces/' + fn + '.png';
         return '<img src="' + fn + '" width="' + SquarePixels + '" height="' + SquarePixels + '">';
     }
     function MakeFileLabel(x) {
@@ -356,7 +356,7 @@ var FwDemo;
         if (rhtml) {
             ResultTextDiv.innerHTML = rhtml;
             ResultTextDiv.style.display = '';
-            ShowPrompt('Click anywhere on the board to play again.');
+            ShowPrompt('Click to play again.');
         }
         else {
             ResultTextDiv.style.display = 'none';

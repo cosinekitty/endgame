@@ -3,7 +3,7 @@
 */
 
 body {
-    width: 800px;
+    width: 360px;
 }
 
 .noselect {
@@ -25,8 +25,8 @@ body {
     position: relative;
     left: 40px;
     top: 35px;
-    width: 560px;
-    height: 560px;
+    width: 320px;
+    height: 320px;
     background-color: beige;
     border:1px solid black;
     border-collapse: separate;
@@ -41,7 +41,7 @@ body {
     position: absolute;
     top: 0px;
     left: 0px;
-    font-size: 100px;
+    font-size: 70px;
     text-align: center;
     vertical-align: middle;
     font-family: serif;
@@ -54,7 +54,7 @@ body {
     position: absolute;
     top: 0px;
     left: 0px;
-    font-size: 28px;
+    font-size: 20px;
     text-align: center;
     vertical-align: middle;
     color: rgba(250, 180, 190, 1.0);
